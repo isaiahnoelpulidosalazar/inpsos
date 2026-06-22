@@ -259,6 +259,8 @@ bool ahci_flush_cache(HBA_Port* port) {
     cmd_header->ctba = cmd_tbl_addr;
     cmd_header->ctbau = 0;
     
+    CMD_Table* cmd_tbl = (CMD_Table*)cmd_tbl_addr;
+    
     FIS_REG_H2D* cmdfis = (FIS_REG_H2D*)(&cmd_tbl->cfis);
     cmdfis->fis_type = 0x27;
     cmdfis->c = 1;
