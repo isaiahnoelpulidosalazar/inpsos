@@ -578,6 +578,10 @@ void gc_collect() {
     
     if (vm.env != NULL) mark_env(vm.env);
     
+    for (int i = 0; i < vm.env_count; i++) {
+        mark_env(vm.env_stack[i]);
+    }
+    
     table_remove_white(&vm.strings);
     
     Object** object = &vm.objects;
@@ -1966,6 +1970,8 @@ void run_script(const char* source, Env* env) {
     init_lexer(source);
     advance_parser();
     
+    vm.gc_paused = 1;
+    
     Stmt** stmts = NULL; int stmt_count = 0;
     skip_newlines();
     while (parser_curr.type != TOKEN_EOF) {
@@ -1975,7 +1981,10 @@ void run_script(const char* source, Env* env) {
         skip_newlines();
     }
     
-    if (had_error) return;
+    if (had_error) {
+        vm.gc_paused = 0;
+        return;
+    }
     
     ObjJob* script_job = (ObjJob*)allocate_object(sizeof(ObjJob), OBJ_JOB);
     script_job->name = allocate_string("main_script", 11);
@@ -1990,6 +1999,8 @@ void run_script(const char* source, Env* env) {
     }
     write_chunk(&script_job->chunk, OP_NULL, 1);
     write_chunk(&script_job->chunk, OP_RETURN, 1);
+    
+    vm.gc_paused = 0;
     
     Env* saved_env = vm.env;
     int saved_frame_count = vm.frame_count;

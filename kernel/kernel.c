@@ -130,7 +130,10 @@ char kget_char() {
 
 void read_directory(HBA_Port* disk) {
     uint32_t sector_buffer[128];
-    ahci_read(disk, DIRECTORY_SECTOR, 0, 1, (uint16_t*)sector_buffer);
+    memset(sector_buffer, 0, sizeof(sector_buffer));
+    if (disk) {
+        ahci_read(disk, DIRECTORY_SECTOR, 0, 1, (uint16_t*)sector_buffer);
+    }
     memcpy(dir_cache, sector_buffer, sizeof(dir_cache));
 }
 
