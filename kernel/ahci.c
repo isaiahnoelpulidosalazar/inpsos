@@ -58,11 +58,9 @@ void init_ahci_port(HBA_Port* port) {
     port->cmd &= ~0x0001;
     port->cmd &= ~0x0010;
 
-    long long start_spin = get_time_ms();
+    int spin = 0;
     while ((port->cmd & 0x4000 || port->cmd & 0x8000)) {
-        if (get_time_ms() - start_spin > 100) {
-            break;
-        }
+        if (spin++ > 1000000) break;
     }
 
     uint8_t* clb_mem = kmalloc(1024 + 1024);
@@ -92,7 +90,6 @@ void init_ahci() {
             HBA_Port* port = &hba_mem->ports[i];
             uint32_t ssts = port->ssts;
             uint8_t det = ssts & 0x0F;
-            uint8_t ipm = (ssts >> 8) & 0x0F;
             if (det == 3) {
                 init_ahci_port(port);
                 active_ports[active_port_count++] = port;
@@ -144,9 +141,9 @@ bool ahci_read(HBA_Port* port, uint32_t startl, uint32_t starth, uint32_t count,
     cmdfis->count_low = (uint8_t)count;
     cmdfis->count_high = (uint8_t)(count >> 8);
     
-    long long start_spin = get_time_ms();
+    int spin = 0;
     while ((port->tfd & (0x80 | 0x08))) {
-        if (get_time_ms() - start_spin > 1000) {
+        if (spin++ > 10000000) {
             kfree(cmd_tbl_mem);
             return false;
         }
@@ -154,14 +151,14 @@ bool ahci_read(HBA_Port* port, uint32_t startl, uint32_t starth, uint32_t count,
     
     port->ci = 1 << slot;
     
-    long long start_ci = get_time_ms();
+    spin = 0;
     while (1) {
         if ((port->ci & (1 << slot)) == 0) break;
         if (port->is & (1 << 30)) {
             kfree(cmd_tbl_mem);
             return false;
         }
-        if (get_time_ms() - start_ci > 1000) {
+        if (spin++ > 10000000) {
             kfree(cmd_tbl_mem);
             return false;
         }
@@ -211,9 +208,9 @@ bool ahci_write(HBA_Port* port, uint32_t startl, uint32_t starth, uint32_t count
     cmdfis->count_low = (uint8_t)count;
     cmdfis->count_high = (uint8_t)(count >> 8);
     
-    long long start_spin = get_time_ms();
+    int spin = 0;
     while ((port->tfd & (0x80 | 0x08))) {
-        if (get_time_ms() - start_spin > 1000) {
+        if (spin++ > 10000000) {
             kfree(cmd_tbl_mem);
             return false;
         }
@@ -221,14 +218,14 @@ bool ahci_write(HBA_Port* port, uint32_t startl, uint32_t starth, uint32_t count
     
     port->ci = 1 << slot;
     
-    long long start_ci = get_time_ms();
+    spin = 0;
     while (1) {
         if ((port->ci & (1 << slot)) == 0) break;
         if (port->is & (1 << 30)) {
             kfree(cmd_tbl_mem);
             return false;
         }
-        if (get_time_ms() - start_ci > 1000) {
+        if (spin++ > 10000000) {
             kfree(cmd_tbl_mem);
             return false;
         }
@@ -267,9 +264,9 @@ bool ahci_flush_cache(HBA_Port* port) {
     cmdfis->command = ATA_CMD_FLUSH_CACHE;
     cmdfis->device = 1 << 6;
     
-    long long start_spin = get_time_ms();
+    int spin = 0;
     while ((port->tfd & (0x80 | 0x08))) {
-        if (get_time_ms() - start_spin > 1000) {
+        if (spin++ > 10000000) {
             kfree(cmd_tbl_mem);
             return false;
         }
@@ -277,14 +274,14 @@ bool ahci_flush_cache(HBA_Port* port) {
     
     port->ci = 1 << slot;
     
-    long long start_ci = get_time_ms();
+    spin = 0;
     while (1) {
         if ((port->ci & (1 << slot)) == 0) break;
         if (port->is & (1 << 30)) {
             kfree(cmd_tbl_mem);
             return false;
         }
-        if (get_time_ms() - start_ci > 1000) {
+        if (spin++ > 10000000) {
             kfree(cmd_tbl_mem);
             return false;
         }
