@@ -27,7 +27,6 @@ typedef volatile struct {
 } __attribute__((packed)) HBA_Port;
 
 typedef volatile struct {
-    uint32_t pci_read_word;
     uint32_t cap;
     uint32_t ghc;
     uint32_t is;
