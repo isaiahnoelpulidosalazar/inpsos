@@ -40,7 +40,8 @@ kernel/easec.o: kernel/easec.c
 kernel.bin: $(KERNEL_OBJS)
 	$(LD) $(LDFLAGS) -o $@ $(KERNEL_OBJS) $(LIBGCC)
 
-fs.bin: kernel/fs_bin.h
+fs.bin kernel/fs_bin.h: boot/boot.bin pack_fs.py $(wildcard programs/*.easec)
+	python3 pack_fs.py
 
 inpsos.img: boot/boot.bin kernel.bin fs.bin
 	dd if=/dev/zero of=$@ bs=512 count=2880

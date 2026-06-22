@@ -280,9 +280,9 @@ void run_installer() {
     }
     kputs("Done.\n");
     
-    kputs("Deploying kernel image (Sectors 1 to 255) directly from physical memory... ");
+    kputs("Deploying kernel image (Sectors 1 to 240) directly from physical memory... ");
     uint8_t* ram_kernel = (uint8_t*)0x10000;
-    for (int s = 1; s <= 255; s++) {
+    for (int s = 1; s <= 240; s++) {
         uint8_t* ram_offset = ram_kernel + (s - 1) * 512;
         if (!ahci_write(dest, s, 0, 1, (uint16_t*)ram_offset)) {
             kputs("Failed!\n"); return;
@@ -366,7 +366,7 @@ void k_main() {
     
     if (force_installer) {
         is_installed_mode = false;
-        if (active_port_count > 0) {
+        if (active_port_count == 1) {
             active_ports[1] = active_ports[0];
         }
     } else {
@@ -375,7 +375,7 @@ void k_main() {
             active_ports[1] = installed_port;
         } else {
             is_installed_mode = false;
-            if (active_port_count > 0) {
+            if (active_port_count == 1) {
                 active_ports[1] = active_ports[0];
             }
         }
@@ -423,6 +423,8 @@ void k_main() {
                 for (int i = 0; i < 10; i++) {
                     if (dir_cache[i].used) printf("  - %s (%d bytes)\n", dir_cache[i].filename, dir_cache[i].size);
                 }
+            } else if (strcmp(input_buffer, "install") == 0) {
+                run_installer();
             } else {
                 printf("Command '%s' not found. Type 'help' to check program directories.\n", input_buffer);
             }
