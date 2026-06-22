@@ -47,7 +47,7 @@ def pack_fs(programs_dir, out_file):
         offset = i * 48
         dir_sector[offset:offset+48] = entry
         
-    dir_sector[508:512] = b'INST'
+    dir_sector[508:512] = b'INPS'
         
     with open(out_file, 'wb') as out:
         out.write(dir_sector)

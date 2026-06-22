@@ -116,11 +116,17 @@ char kget_char() {
 }
 
 void read_directory(HBA_Port* disk) {
-    ahci_read(disk, DIRECTORY_SECTOR, 0, 1, (uint16_t*)dir_cache);
+    uint32_t sector_buffer[128];
+    ahci_read(disk, DIRECTORY_SECTOR, 0, 1, (uint16_t*)sector_buffer);
+    memcpy(dir_cache, sector_buffer, sizeof(dir_cache));
 }
 
 void write_directory(HBA_Port* disk) {
-    ahci_write(disk, DIRECTORY_SECTOR, 0, 1, (uint16_t*)dir_cache);
+    uint32_t sector_buffer[128];
+    memset(sector_buffer, 0, sizeof(sector_buffer));
+    memcpy(sector_buffer, dir_cache, sizeof(dir_cache));
+    memcpy(&((uint8_t*)sector_buffer)[508], "INPS", 4);
+    ahci_write(disk, DIRECTORY_SECTOR, 0, 1, (uint16_t*)sector_buffer);
 }
 
 bool create_file(HBA_Port* disk, const char* name, const char* content, uint32_t size) {
