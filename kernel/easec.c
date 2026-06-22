@@ -376,7 +376,9 @@ void init_vm() {
     vm.frame_count = 0;
     vm.stack_top = vm.stack;
     vm.objects = NULL;
-    vm.next_gc = 1024 * 1024;
+    
+    vm.next_gc = 1024 * 64; 
+    
     vm.gc_paused = 0;
     init_table(&vm.strings);
     vm.env = NULL;

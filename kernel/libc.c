@@ -1,7 +1,7 @@
 #include "libc.h"
 
 #define HEAP_START 0x100000
-#define HEAP_MAX   0x2000000
+#define HEAP_MAX   0x50000
 
 typedef struct BlockHeader {
     size_t size;
