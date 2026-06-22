@@ -60,7 +60,7 @@ void init_ahci_port(HBA_Port* port) {
 
     volatile int spin = 0;
     while ((port->cmd & 0x4000 || port->cmd & 0x8000)) {
-        if (spin++ > 1000000) break;
+        if (spin++ > 10000000) break;
     }
 
     uint8_t* clb_mem = kmalloc(1024 + 1024);
@@ -100,10 +100,10 @@ void init_ahci() {
 
 #define ATA_CMD_READ_DMA_EXT  0x25
 #define ATA_CMD_WRITE_DMA_EXT 0x35
+#define HBA_TIMEOUT           500000000 
 
 bool ahci_read(HBA_Port* port, uint32_t startl, uint32_t starth, uint32_t count, uint16_t* buf) {
     if (!port) return false;
-    
     port->is = (uint32_t)-1;
     port->serr = (uint32_t)-1;
     
@@ -146,7 +146,7 @@ bool ahci_read(HBA_Port* port, uint32_t startl, uint32_t starth, uint32_t count,
     
     volatile int spin = 0;
     while ((port->tfd & (0x80 | 0x08))) {
-        if (spin++ > 10000000) {
+        if (spin++ > HBA_TIMEOUT) {
             kfree(cmd_tbl_mem);
             return false;
         }
@@ -161,7 +161,7 @@ bool ahci_read(HBA_Port* port, uint32_t startl, uint32_t starth, uint32_t count,
             kfree(cmd_tbl_mem);
             return false;
         }
-        if (spin++ > 10000000) {
+        if (spin++ > HBA_TIMEOUT) {
             kfree(cmd_tbl_mem);
             return false;
         }
@@ -173,7 +173,6 @@ bool ahci_read(HBA_Port* port, uint32_t startl, uint32_t starth, uint32_t count,
 
 bool ahci_write(HBA_Port* port, uint32_t startl, uint32_t starth, uint32_t count, uint16_t* buf) {
     if (!port) return false;
-    
     port->is = (uint32_t)-1;
     port->serr = (uint32_t)-1;
     
@@ -216,7 +215,7 @@ bool ahci_write(HBA_Port* port, uint32_t startl, uint32_t starth, uint32_t count
     
     volatile int spin = 0;
     while ((port->tfd & (0x80 | 0x08))) {
-        if (spin++ > 10000000) {
+        if (spin++ > HBA_TIMEOUT) {
             kfree(cmd_tbl_mem);
             return false;
         }
@@ -231,7 +230,7 @@ bool ahci_write(HBA_Port* port, uint32_t startl, uint32_t starth, uint32_t count
             kfree(cmd_tbl_mem);
             return false;
         }
-        if (spin++ > 10000000) {
+        if (spin++ > HBA_TIMEOUT) {
             kfree(cmd_tbl_mem);
             return false;
         }
@@ -273,7 +272,7 @@ bool ahci_flush_cache(HBA_Port* port) {
     
     volatile int spin = 0;
     while ((port->tfd & (0x80 | 0x08))) {
-        if (spin++ > 10000000) {
+        if (spin++ > HBA_TIMEOUT) {
             kfree(cmd_tbl_mem);
             return false;
         }
@@ -288,7 +287,7 @@ bool ahci_flush_cache(HBA_Port* port) {
             kfree(cmd_tbl_mem);
             return false;
         }
-        if (spin++ > 10000000) {
+        if (spin++ > HBA_TIMEOUT) {
             kfree(cmd_tbl_mem);
             return false;
         }

@@ -1205,6 +1205,8 @@ InterpretResult run() {
 }
 
 void easec_register_fs(void* env_ptr, char** filenames, int count) {
+    vm.gc_paused = 1; 
+    
     Env* env = (Env*)env_ptr;
     env_define(env, "file_count", make_int(count));
     
@@ -1219,6 +1221,8 @@ void easec_register_fs(void* env_ptr, char** filenames, int count) {
         arr->items[i] = OBJ_VAL(name);
     }
     env_define(env, "files", arr_val);
+    
+    vm.gc_paused = 0;
 }
 
 void run_script(const char* source, Env* env) {
