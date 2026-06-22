@@ -105,11 +105,24 @@ char kget_char() {
         0, 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', '\'', '`', 0, '\\',
         'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/', 0, '*', 0, ' '
     };
+    static const char shift_layout[128] = {
+        0, 0, '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '+', '\b',
+        '\t', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '{', '}', '\n',
+        0, 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ':', '"', '~', 0, '|',
+        'Z', 'X', 'C', 'V', 'B', 'N', 'M', '<', '>', '?', 0, '*', 0, ' '
+    };
+    static int shift_pressed = 0;
+
     while (1) {
         while ((inb(0x64) & 1) == 0);
         uint8_t code = inb(0x60);
-        if (!(code & 0x80)) {
-            char c = layout[code];
+        
+        if (code == 0x2A || code == 0x36) {
+            shift_pressed = 1;
+        } else if (code == 0xAA || code == 0xB6) {
+            shift_pressed = 0;
+        } else if (!(code & 0x80)) {
+            char c = shift_pressed ? shift_layout[code] : layout[code];
             if (c) return c;
         }
     }
