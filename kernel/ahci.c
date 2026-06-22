@@ -237,3 +237,57 @@ bool ahci_write(HBA_Port* port, uint32_t startl, uint32_t starth, uint32_t count
     kfree(cmd_tbl_mem);
     return true;
 }
+
+#define ATA_CMD_FLUSH_CACHE_EXT 0xEA
+
+bool ahci_flush_cache(HBA_Port* port) {
+    if (!port) return false;
+    port->is = 0xFFFF;
+    int slot = 0;
+    
+    CMD_Header* cmd_header = (CMD_Header*)(port->clb);
+    cmd_header += slot;
+    cmd_header->cfl = sizeof(FIS_REG_H2D) / sizeof(uint32_t);
+    cmd_header->w = 0;
+    cmd_header->prdtl = 0;
+    
+    uint8_t* cmd_tbl_mem = kmalloc(sizeof(CMD_Table) + 128);
+    if (!cmd_tbl_mem) return false;
+    uint32_t cmd_tbl_addr = ((uint32_t)cmd_tbl_mem + 127) & ~127;
+    memset((void*)cmd_tbl_addr, 0, sizeof(CMD_Table));
+    
+    cmd_header->ctba = cmd_tbl_addr;
+    cmd_header->ctbau = 0;
+    
+    FIS_REG_H2D* cmdfis = (FIS_REG_H2D*)(&cmd_tbl->cfis);
+    cmdfis->fis_type = 0x27;
+    cmdfis->c = 1;
+    cmdfis->command = ATA_CMD_FLUSH_CACHE_EXT;
+    cmdfis->device = 1 << 6;
+    
+    long long start_spin = get_time_ms();
+    while ((port->tfd & (0x80 | 0x08))) {
+        if (get_time_ms() - start_spin > 1000) {
+            kfree(cmd_tbl_mem);
+            return false;
+        }
+    }
+    
+    port->ci = 1 << slot;
+    
+    long long start_ci = get_time_ms();
+    while (1) {
+        if ((port->ci & (1 << slot)) == 0) break;
+        if (port->is & (1 << 30)) {
+            kfree(cmd_tbl_mem);
+            return false;
+        }
+        if (get_time_ms() - start_ci > 1000) {
+            kfree(cmd_tbl_mem);
+            return false;
+        }
+    }
+    
+    kfree(cmd_tbl_mem);
+    return true;
+}

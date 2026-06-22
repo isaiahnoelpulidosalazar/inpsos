@@ -110,5 +110,6 @@ struct InpsFileEntry {
 void init_ahci();
 bool ahci_read(HBA_Port* port, uint32_t startl, uint32_t starth, uint32_t count, uint16_t* buf);
 bool ahci_write(HBA_Port* port, uint32_t startl, uint32_t starth, uint32_t count, uint16_t* buf);
+bool ahci_flush_cache(HBA_Port* port);
 
 #endif

@@ -308,7 +308,12 @@ void run_installer() {
             kputs("Failed!\n"); return;
         }
     }
-    kputs("Done.\n");
+    kputs("Flushing physical drive cache... ");
+    if (ahci_flush_cache(dest)) {
+        kputs("Done.\n");
+    } else {
+        kputs("Failed!\n");
+    }
     
     kputs("\nSUCCESS! inpsos has been physically installed to your hard drive.\n");
     kputs("Please remove your USB installation drive and restart your computer!\n");
