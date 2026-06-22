@@ -58,7 +58,7 @@ void init_ahci_port(HBA_Port* port) {
     port->cmd &= ~0x0001;
     port->cmd &= ~0x0010;
 
-    int spin = 0;
+    volatile int spin = 0;
     while ((port->cmd & 0x4000 || port->cmd & 0x8000)) {
         if (spin++ > 1000000) break;
     }
@@ -103,7 +103,10 @@ void init_ahci() {
 
 bool ahci_read(HBA_Port* port, uint32_t startl, uint32_t starth, uint32_t count, uint16_t* buf) {
     if (!port) return false;
-    port->is = 0xFFFF;
+    
+    port->is = (uint32_t)-1;
+    port->serr = (uint32_t)-1;
+    
     int slot = 0;
     
     CMD_Header* cmd_header = (CMD_Header*)(port->clb);
@@ -141,7 +144,7 @@ bool ahci_read(HBA_Port* port, uint32_t startl, uint32_t starth, uint32_t count,
     cmdfis->count_low = (uint8_t)count;
     cmdfis->count_high = (uint8_t)(count >> 8);
     
-    int spin = 0;
+    volatile int spin = 0;
     while ((port->tfd & (0x80 | 0x08))) {
         if (spin++ > 10000000) {
             kfree(cmd_tbl_mem);
@@ -170,7 +173,10 @@ bool ahci_read(HBA_Port* port, uint32_t startl, uint32_t starth, uint32_t count,
 
 bool ahci_write(HBA_Port* port, uint32_t startl, uint32_t starth, uint32_t count, uint16_t* buf) {
     if (!port) return false;
-    port->is = 0xFFFF;
+    
+    port->is = (uint32_t)-1;
+    port->serr = (uint32_t)-1;
+    
     int slot = 0;
     
     CMD_Header* cmd_header = (CMD_Header*)(port->clb);
@@ -208,7 +214,7 @@ bool ahci_write(HBA_Port* port, uint32_t startl, uint32_t starth, uint32_t count
     cmdfis->count_low = (uint8_t)count;
     cmdfis->count_high = (uint8_t)(count >> 8);
     
-    int spin = 0;
+    volatile int spin = 0;
     while ((port->tfd & (0x80 | 0x08))) {
         if (spin++ > 10000000) {
             kfree(cmd_tbl_mem);
@@ -239,7 +245,8 @@ bool ahci_write(HBA_Port* port, uint32_t startl, uint32_t starth, uint32_t count
 
 bool ahci_flush_cache(HBA_Port* port) {
     if (!port) return false;
-    port->is = 0xFFFF;
+    port->is = (uint32_t)-1;
+    port->serr = (uint32_t)-1;
     int slot = 0;
     
     CMD_Header* cmd_header = (CMD_Header*)(port->clb);
@@ -264,7 +271,7 @@ bool ahci_flush_cache(HBA_Port* port) {
     cmdfis->command = ATA_CMD_FLUSH_CACHE;
     cmdfis->device = 1 << 6;
     
-    int spin = 0;
+    volatile int spin = 0;
     while ((port->tfd & (0x80 | 0x08))) {
         if (spin++ > 10000000) {
             kfree(cmd_tbl_mem);
