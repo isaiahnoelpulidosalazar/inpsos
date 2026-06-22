@@ -238,7 +238,7 @@ bool ahci_write(HBA_Port* port, uint32_t startl, uint32_t starth, uint32_t count
     return true;
 }
 
-#define ATA_CMD_FLUSH_CACHE_EXT 0xEA
+#define ATA_CMD_FLUSH_CACHE 0xE7
 
 bool ahci_flush_cache(HBA_Port* port) {
     if (!port) return false;
@@ -264,7 +264,7 @@ bool ahci_flush_cache(HBA_Port* port) {
     FIS_REG_H2D* cmdfis = (FIS_REG_H2D*)(&cmd_tbl->cfis);
     cmdfis->fis_type = 0x27;
     cmdfis->c = 1;
-    cmdfis->command = ATA_CMD_FLUSH_CACHE_EXT;
+    cmdfis->command = ATA_CMD_FLUSH_CACHE;
     cmdfis->device = 1 << 6;
     
     long long start_spin = get_time_ms();

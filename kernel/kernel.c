@@ -263,6 +263,21 @@ void register_filesystem_env(void* env) {
     env_define(env, "files", arr_val);
 }
 
+void wipe_hard_drive(HBA_Port* dest) {
+    kputs("Wiping/formatting existing drive sectors... ");
+    uint32_t zero_buffer[128];
+    memset(zero_buffer, 0, 512);
+    
+    for (int s = 0; s <= 320; s++) {
+        if (!ahci_write(dest, s, 0, 1, (uint16_t*)zero_buffer)) {
+            kputs("Wipe failed at sector ");
+            printf("%d\n", s);
+            return;
+        }
+    }
+    kputs("Done.\n");
+}
+
 void run_installer() {
     kputs("\nStarting bare-metal installation of inpsos...\n");
     if (active_port_count < 1) {
@@ -270,6 +285,8 @@ void run_installer() {
         return;
     }
     HBA_Port* dest = active_ports[1];
+
+    wipe_hard_drive(dest);
     
     kputs("Installing custom MBR bootloader to Sector 0... ");
     uint32_t sector_buffer[128];
