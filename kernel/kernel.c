@@ -249,6 +249,7 @@ extern void env_define(void* env, const char* name, Value val);
 extern void* allocate_string(const char* chars, int length);
 extern void* safe_alloc(size_t size);
 extern Value make_int(long long i);
+extern void easec_register_fs(void* env, char** filenames, int count);
 
 void register_filesystem_env(void* env) {
     read_directory(active_ports[1]);
@@ -257,22 +258,16 @@ void register_filesystem_env(void* env) {
         if (dir_cache[i].used) count++;
     }
     
-    env_define(env, "file_count", make_int(count));
-    
-    Value arr_val = make_array();
-    ObjArray* arr = (ObjArray*)arr_val.as.obj;
-    arr->count = count;
-    arr->capacity = count;
-    arr->items = (Value*)safe_alloc(sizeof(Value) * count);
-    
+    char** names = malloc(sizeof(char*) * count);
     int idx = 0;
     for (int i = 0; i < 10; i++) {
         if (dir_cache[i].used) {
-            void* name = allocate_string(dir_cache[i].filename, strlen(dir_cache[i].filename));
-            arr->items[idx++] = OBJ_VAL(name);
+            names[idx++] = dir_cache[i].filename;
         }
     }
-    env_define(env, "files", arr_val);
+    
+    easec_register_fs(env, names, count);
+    free(names);
 }
 
 void wipe_hard_drive(HBA_Port* dest) {
