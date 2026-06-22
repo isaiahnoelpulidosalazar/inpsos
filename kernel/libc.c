@@ -16,8 +16,9 @@ extern void kputs(const char* s);
 extern char kget_char();
 
 long long get_time_ms(void) {
-    uint64_t tsc;
-    __asm__ volatile ("rdtsc" : "=A"(tsc));
+    uint32_t low, high;
+    __asm__ volatile ("rdtsc" : "=a"(low), "=d"(high));
+    uint64_t tsc = ((uint64_t)high << 32) | low;
     return (long long)(tsc / 2000000);
 }
 

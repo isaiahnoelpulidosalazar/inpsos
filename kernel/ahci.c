@@ -43,7 +43,7 @@ void find_ahci() {
                 
                 if (class_code == 0x01 && subclass == 0x06) {
                     uint32_t abar = pci_read_word(bus, slot, func, 0x24);
-                    hba_mem = (HBA_Mem*)abar;
+                    hba_mem = (HBA_Mem*)(abar & 0xFFFFFFF0);
                     
                     uint32_t cmd = pci_read_word(bus, slot, func, 0x04);
                     pci_write_word(bus, slot, func, 0x04, cmd | 0x07);
@@ -93,7 +93,7 @@ void init_ahci() {
             uint32_t ssts = port->ssts;
             uint8_t det = ssts & 0x0F;
             uint8_t ipm = (ssts >> 8) & 0x0F;
-            if (det == 3 && ipm == 1) {
+            if (det == 3) {
                 init_ahci_port(port);
                 active_ports[active_port_count++] = port;
             }
@@ -105,6 +105,7 @@ void init_ahci() {
 #define ATA_CMD_WRITE_DMA_EXT 0x35
 
 bool ahci_read(HBA_Port* port, uint32_t startl, uint32_t starth, uint32_t count, uint16_t* buf) {
+    if (!port) return false;
     port->is = 0xFFFF;
     int slot = 0;
     
@@ -171,6 +172,7 @@ bool ahci_read(HBA_Port* port, uint32_t startl, uint32_t starth, uint32_t count,
 }
 
 bool ahci_write(HBA_Port* port, uint32_t startl, uint32_t starth, uint32_t count, uint16_t* buf) {
+    if (!port) return false;
     port->is = 0xFFFF;
     int slot = 0;
     

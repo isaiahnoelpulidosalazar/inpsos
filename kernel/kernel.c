@@ -150,7 +150,7 @@ bool create_file(HBA_Port* disk, const char* name, const char* content, uint32_t
     }
     if (slot == -1) return false;
     
-    uint32_t start_sec = 130;
+    uint32_t start_sec = 257;
     for (int i = 0; i < 10; i++) {
         if (dir_cache[i].used) {
             if (dir_cache[i].start_sector + dir_cache[i].num_sectors > start_sec) {
