@@ -228,7 +228,19 @@ typedef struct {
     } as;
 } Value;
 
-typedef struct { void* obj; Value* items; int capacity; int count; } ObjArray;
+typedef struct {
+    uint32_t type;
+    int marked;
+    int is_constant;
+    void* next;
+} MockObject;
+
+typedef struct { 
+    MockObject obj; 
+    Value* items; 
+    int capacity; 
+    int count; 
+} ObjArray;
 
 #define OBJ_VAL(o) ((Value){VAL_OBJ, {.obj = (void*)(o)}})
 
