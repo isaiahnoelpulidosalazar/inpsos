@@ -1295,6 +1295,7 @@ void compile_stmt(Compiler* compiler, Stmt* stmt) {
             int constant = add_constant(compiler->chunk, OBJ_VAL(name));
             write_chunk(compiler->chunk, OP_SET_GLOBAL, stmt->line);
             write_chunk(compiler->chunk, constant, stmt->line);
+            write_chunk(compiler->chunk, OP_POP, stmt->line);
             break;
         }
         case STMT_ARRAY: {
@@ -1317,6 +1318,7 @@ void compile_stmt(Compiler* compiler, Stmt* stmt) {
             compile_expr(compiler, stmt->as.array_set.index);
             compile_expr(compiler, stmt->as.array_set.value);
             write_chunk(compiler->chunk, OP_ARRAY_SET, stmt->line);
+            write_chunk(compiler->chunk, OP_POP, stmt->line);
             break;
         }
         case STMT_DICT: {
@@ -1346,6 +1348,7 @@ void compile_stmt(Compiler* compiler, Stmt* stmt) {
             write_chunk(compiler->chunk, key_const, stmt->line);
             compile_expr(compiler, stmt->as.dict_set.value);
             write_chunk(compiler->chunk, OP_DICT_SET, stmt->line);
+            write_chunk(compiler->chunk, OP_POP, stmt->line);
             break;
         }
         case STMT_JOB: {
@@ -1725,7 +1728,11 @@ InterpretResult run() {
                 Value result = pop();
                 vm.frame_count--;
                 vm.stack_top = frame->slots;
-                pop_env();
+                
+                if (vm.frame_count > sentinel_frame) {
+                    pop_env();
+                }
+                
                 if (vm.frame_count <= sentinel_frame) {
                     if (vm.frame_count > 0) {
                         push(result);
@@ -1984,6 +1991,7 @@ void run_script(const char* source, Env* env) {
     
     if (had_error) {
         vm.gc_paused = 0;
+        free_ast();
         return;
     }
     
@@ -2026,6 +2034,8 @@ void run_script(const char* source, Env* env) {
         vm.frame_count = saved_frame_count;
         vm.stack_top = saved_stack_top;
     }
+    
+    free_ast();
 }
 
 void run_file(const char* path, Env* env) {
