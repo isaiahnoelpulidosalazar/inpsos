@@ -1967,6 +1967,7 @@ InterpretResult run() {
 
 void run_script(const char* source, Env* env) {
     had_error = 0;
+    had_runtime_error = 0;
     init_lexer(source);
     advance_parser();
     
