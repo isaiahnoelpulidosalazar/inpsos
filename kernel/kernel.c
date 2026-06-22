@@ -412,11 +412,29 @@ void k_main() {
             }
         } else {
             uint32_t fsize = 0;
-            char* script_src = read_file(active_ports[1], input_buffer, &fsize);
-            if (script_src) {
-                register_filesystem_env(global_env);
-                run_script(script_src, global_env);
-                free(script_src);
+            
+            if (strcmp(input_buffer, "help") != 0 && strcmp(input_buffer, "install") != 0) {
+                printf("[DIAGNOSTIC] 1. Searching for '%s' on disk...\n", input_buffer);
+                
+                char* script_src = read_file(active_ports[1], input_buffer, &fsize);
+                
+                if (script_src) {
+                    printf("[DIAGNOSTIC] 2. Found! Loaded %d bytes from sectors.\n", fsize);
+                    
+                    printf("[DIAGNOSTIC] 3. Registering filesystem variables to VM...\n");
+                    register_filesystem_env(global_env);
+                    
+                    printf("[DIAGNOSTIC] 4. Parsing and compiling script...\n");
+                    extern int had_runtime_error;
+                    had_runtime_error = 0;
+                    
+                    run_script(script_src, global_env);
+                    
+                    printf("[DIAGNOSTIC] 5. Script finished execution.\n");
+                    free(script_src);
+                } else {
+                    printf("[DIAGNOSTIC] File '%s' not found on storage.\n", input_buffer);
+                }
             } else if (strcmp(input_buffer, "help") == 0) {
                 kputs("Available programs on storage:\n");
                 read_directory(active_ports[1]);
@@ -425,8 +443,6 @@ void k_main() {
                 }
             } else if (strcmp(input_buffer, "install") == 0) {
                 run_installer();
-            } else {
-                printf("Command '%s' not found. Type 'help' to check program directories.\n", input_buffer);
             }
         }
     }
