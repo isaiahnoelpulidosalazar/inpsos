@@ -239,7 +239,7 @@ static void adjust_capacity(Table* table, int capacity) {
 
 int table_set(Table* table, ObjString* key, Value value) {
     printf("[easec] table_set: count=%d, capacity=%d...\n", table->count, table->capacity);
-    if (table->count + 1 > table->capacity * 0.75) {
+    if ((table->count + 1) * 4 > table->capacity * 3) {
         int capacity = table->capacity < 8 ? 8 : table->capacity * 2;
         printf("[easec] table_set: Resizing table from %d to %d...\n", table->capacity, capacity);
         adjust_capacity(table, capacity);
@@ -903,7 +903,7 @@ void compile_expr(Compiler* compiler, Expr* expr) {
                 case TOKEN_PLUS: write_chunk(compiler->chunk, OP_ADD, expr->line); break; case TOKEN_MINUS: write_chunk(compiler->chunk, OP_SUBTRACT, expr->line); break;
                 case TOKEN_STAR: write_chunk(compiler->chunk, OP_MULTIPLY, expr->line); break; case TOKEN_SLASH: write_chunk(compiler->chunk, OP_DIVIDE, expr->line); break;
                 case TOKEN_PERCENT: write_chunk(compiler->chunk, OP_MODULO, expr->line); break; case TOKEN_EQEQ: write_chunk(compiler->chunk, OP_EQUAL, expr->line); break;
-                case TOKEN_BANGEQ: write_chunk(compiler->chunk, OP_EQUAL, expr->line); write_chunk(compiler->chunk, OP_NOT, expr->line); break;
+                case TOKEN_BANGEQ: write_chunk(compiler->chunk, OP_EQUAL, write_chunk(compiler->chunk, OP_NOT, expr->line), expr->line); break;
                 case TOKEN_LESS: write_chunk(compiler->chunk, OP_LESS, expr->line); break; case TOKEN_LESSEQ: write_chunk(compiler->chunk, OP_GREATER, expr->line); write_chunk(compiler->chunk, OP_NOT, expr->line); break;
                 case TOKEN_GREATER: write_chunk(compiler->chunk, OP_GREATER, expr->line); break; case TOKEN_GREATEREQ: write_chunk(compiler->chunk, OP_LESS, expr->line); write_chunk(compiler->chunk, OP_NOT, expr->line); break;
                 default: break;
