@@ -217,13 +217,6 @@ char* read_file(HBA_Port* disk, const char* name, uint32_t* out_size) {
     return NULL;
 }
 
-#define OBJ_VAL(o) ((Value){VAL_OBJ, {.obj = (void*)(o)}})
-
-extern Value make_array();
-extern void env_define(void* env, const char* name, Value val);
-extern void* allocate_string(const char* chars, int length);
-extern void* safe_alloc(size_t size);
-extern Value make_int(long long i);
 extern void easec_register_fs(void* env, char** filenames, int count);
 
 void register_filesystem_env(void* env) {
