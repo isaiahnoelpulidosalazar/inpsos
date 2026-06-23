@@ -1,5 +1,4 @@
-note [ list.easec - Lists files physically on disk ]
-say "Installed .easec programs on disk:"
+say "Available programs on disk:"
 var number idx 0
 repeat file_count [
     var text name array get files idx

@@ -1,4 +1,3 @@
-note [ create_file.easec - Creates a new file ]
 say "Enter target filename:"
 var text filename get
 say "Enter content to write:"

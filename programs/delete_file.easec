@@ -1,4 +1,3 @@
-note [ delete_file.easec - Deletes a file ]
 say "Enter target filename to delete:"
 var text filename get
 file delete filename

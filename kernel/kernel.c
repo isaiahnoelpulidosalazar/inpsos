@@ -220,16 +220,11 @@ char* read_file(HBA_Port* disk, const char* name, uint32_t* out_size) {
 extern void easec_register_fs(void* env, char** filenames, int count);
 
 void register_filesystem_env(void* env) {
-    printf("[kernel] register_filesystem_env: Step A. Reading directory...\n");
     read_directory(active_ports[1]);
-    
-    printf("[kernel] register_filesystem_env: Step B. Scanning cached directory used slots...\n");
     int count = 0;
     for (int i = 0; i < 10; i++) {
         if (dir_cache[i].used) count++;
     }
-    
-    printf("[kernel] register_filesystem_env: Found %d files. Allocating buffer...\n", count);
     char** names = malloc(sizeof(char*) * count);
     int idx = 0;
     for (int i = 0; i < 10; i++) {
@@ -237,18 +232,12 @@ void register_filesystem_env(void* env) {
             names[idx++] = dir_cache[i].filename;
         }
     }
-    
-    printf("[kernel] register_filesystem_env: Step C. Transferring variables to easec VM...\n");
     easec_register_fs(env, names, count);
-    
-    printf("[kernel] register_filesystem_env: Step D. Freeing allocated memory...\n");
     free(names);
-    
-    printf("[kernel] register_filesystem_env: Success!\n");
 }
 
 void wipe_hard_drive(HBA_Port* dest) {
-    kputs("Wiping/formatting existing drive sectors... ");
+    kputs("Wiping drive sectors... ");
     uint32_t zero_buffer[128];
     memset(zero_buffer, 0, 512);
     
@@ -263,7 +252,7 @@ void wipe_hard_drive(HBA_Port* dest) {
 }
 
 void run_installer() {
-    kputs("\nStarting bare-metal installation of inpsos...\n");
+    kputs("\nStarting inpsos installation...\n");
     if (active_port_count < 1) {
         kputs("Error: No SATA hard drive detected! Ensure SATA is enabled in BIOS.\n");
         return;
@@ -281,7 +270,7 @@ void run_installer() {
     }
     kputs("Done.\n");
     
-    kputs("Deploying kernel image (Sectors 1 to 240) directly from physical memory... ");
+    kputs("Deploying kernel image (Sectors 1 to 240) from memory... ");
     uint8_t* ram_kernel = (uint8_t*)0x10000;
     for (int s = 1; s <= 240; s++) {
         uint8_t* ram_offset = ram_kernel + (s - 1) * 512;
@@ -309,32 +298,35 @@ void run_installer() {
             kputs("Failed!\n"); return;
         }
     }
-    kputs("\nFlushing physical drive cache... ");
+    kputs("Done.\n");
+    
+    kputs("Flushing drive cache... ");
     if (ahci_flush_cache(dest)) {
         kputs("Done.\n");
     } else {
         kputs("Failed!\n");
     }
     
-    kputs("\nSUCCESS! inpsos has been physically installed to your hard drive.\n");
-    kputs("Please remove your USB installation drive and restart your computer!\n");
+    kputs("\ninpsos has been installed to your hard drive.\n");
+    kputs("Please remove your installation drive and restart your computer.\n");
 }
 
 void k_main() {
     clear_screen();
-    kputs("==================================================\n");
-    kputs("          INPSOS OPERATING SYSTEM                  \n");
-    kputs("==================================================\n");
+    // kputs("==================================================\n");
+    // kputs("          INPSOS OPERATING SYSTEM                 \n");
+    // kputs("==================================================\n");
+    kputs("Starting system...\n");
     
     init_allocator();
     init_ahci();
     
     bool force_installer = false;
     
-    kputs("Press 'i' to enter Installer Mode (Booting in 2s)... ");
+    // kputs("Press 'i' to enter Installer Mode (Booting in 2s)... ");
     long long start_wait = get_time_ms();
     int last_seconds_left = 2;
-    printf("%d ", last_seconds_left);
+    // printf("%d ", last_seconds_left);
     
     while (1) {
         long long elapsed = get_time_ms() - start_wait;
@@ -342,7 +334,7 @@ void k_main() {
         
         int seconds_left = 2 - (int)(elapsed / 1000);
         if (seconds_left < last_seconds_left && seconds_left > 0) {
-            printf("%d ", seconds_left);
+            // printf("%d ", seconds_left);
             last_seconds_left = seconds_left;
         }
         
@@ -388,11 +380,12 @@ void k_main() {
     }
     
     if (is_installed_mode) {
-        kputs("Booted from primary hard drive. inpsos is active.\n");
-        kputs("Type a program name to execute (e.g. list.easec)\n\n");
+        // kputs("Booted from primary hard drive. inpsos is active.\n");
+        // kputs("Type a program name to execute (e.g. list.easec)\n\n");
+        kputs("inpsos booted.\n\n");
     } else {
-        kputs("Booted from installation USB medium.\n");
-        kputs("Type 'install' to physically write inpsos to your hard drive.\n\n");
+        kputs("Installer started.\n");
+        kputs("Type 'install' to write inpsos to your hard drive.\n\n");
     }
     
     init_vm();
@@ -400,7 +393,7 @@ void k_main() {
     char input_buffer[256];
     
     while (1) {
-        if (is_installed_mode) kputs("inpsos$ "); else kputs("installer$ ");
+        if (is_installed_mode) kputs("inpsos> "); else kputs("installer> ");
         fgets(input_buffer, sizeof(input_buffer), stdin);
         
         int len = strlen(input_buffer);
@@ -414,36 +407,29 @@ void k_main() {
             if (strcmp(input_buffer, "install") == 0) {
                 run_installer();
             } else {
-                kputs("Unsupported command. The ISO environment only supports 'install'.\n");
+                kputs("Unsupported command. The installer environment only supports 'install'.\n");
             }
         } else {
             uint32_t fsize = 0;
             
             if (strcmp(input_buffer, "help") != 0 && strcmp(input_buffer, "install") != 0) {
-                printf("[kernel] Main: Reading script file...\n");
                 char* script_src = read_file(active_ports[1], input_buffer, &fsize);
-                
                 if (script_src) {
-                    printf("[kernel] Main: Registering filesystem variables to VM...\n");
                     register_filesystem_env(global_env);
-                    
-                    printf("[kernel] Main: Invoking run_script...\n");
                     extern int had_runtime_error;
                     had_runtime_error = 0;
-                    
                     run_script(script_src, global_env);
-                    
-                    printf("[kernel] Main: Script execution finished. Freeing buffer...\n");
                     free(script_src);
                 } else {
                     printf("File '%s' not found.\n", input_buffer);
                 }
             } else if (strcmp(input_buffer, "help") == 0) {
-                kputs("Available programs on storage:\n");
+                kputs("Use the command 'test.easec' to get started.\n");
+                /* kputs("Available programs on storage:\n");
                 read_directory(active_ports[1]);
                 for (int i = 0; i < 10; i++) {
                     if (dir_cache[i].used) printf("  - %s (%d bytes)\n", dir_cache[i].filename, dir_cache[i].size);
-                }
+                } */
             } else if (strcmp(input_buffer, "install") == 0) {
                 run_installer();
             }
