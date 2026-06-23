@@ -198,23 +198,14 @@ bool delete_file(HBA_Port* disk, const char* name) {
 }
 
 char* read_file(HBA_Port* disk, const char* name, uint32_t* out_size) {
-    printf("[DEBUG] read_file: Step A. Reading directory sector...\n");
     read_directory(disk);
-    
-    printf("[DEBUG] read_file: Step B. Searching for matches for '%s'...\n", name);
     for (int i = 0; i < 10; i++) {
         if (dir_cache[i].used && strcmp(dir_cache[i].filename, name) == 0) {
             uint32_t num_secs = dir_cache[i].num_sectors;
-            printf("[DEBUG] read_file: Match found at directory slot %d. Sector %d, Sector Count %d.\n", i, dir_cache[i].start_sector, num_secs);
-            
             uint8_t* buf = malloc(num_secs * 512);
-            printf("[DEBUG] read_file: Step C. Issuing AHCI Read command...\n");
             if (!ahci_read(disk, dir_cache[i].start_sector, 0, num_secs, (uint16_t*)buf)) {
-                printf("[DEBUG] read_file: AHCI Read FAILED!\n");
                 free(buf); return NULL;
             }
-            printf("[DEBUG] read_file: Step D. AHCI Read SUCCESS!\n");
-            
             *out_size = dir_cache[i].size;
             char* out = malloc(dir_cache[i].size + 1);
             memcpy(out, buf, dir_cache[i].size);
@@ -223,7 +214,6 @@ char* read_file(HBA_Port* disk, const char* name, uint32_t* out_size) {
             return out;
         }
     }
-    printf("[DEBUG] read_file: File not found in cached directory.\n");
     return NULL;
 }
 
@@ -421,20 +411,14 @@ void k_main() {
             uint32_t fsize = 0;
             
             if (strcmp(input_buffer, "help") != 0 && strcmp(input_buffer, "install") != 0) {
-                printf("[DIAGNOSTIC] 1. Searching for '%s' on disk...\n", input_buffer);
-                
                 char* script_src = read_file(active_ports[1], input_buffer, &fsize);
                 
                 if (script_src) {
-                    printf("[DIAGNOSTIC] 2. Success! Loaded %d bytes.\n", fsize);
-                    printf("[DIAGNOSTIC] 3. Dumping raw file contents:\n");
-                    printf("========================================\n");
-                    printf("%s\n", script_src);
-                    printf("========================================\n");
-                    printf("[DIAGNOSTIC] 4. Bypassing execution layer for debug safety.\n");
+                    register_filesystem_env(global_env);
+                    run_script(script_src, global_env);
                     free(script_src);
                 } else {
-                    printf("[DIAGNOSTIC] File '%s' not found or read failed.\n", input_buffer);
+                    printf("File '%s' not found.\n", input_buffer);
                 }
             } else if (strcmp(input_buffer, "help") == 0) {
                 kputs("Available programs on storage:\n");
