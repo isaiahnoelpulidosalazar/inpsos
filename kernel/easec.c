@@ -215,24 +215,42 @@ int table_get(Table* table, ObjString* key, Value* value) {
 }
 
 static void adjust_capacity(Table* table, int capacity) {
+    printf("[easec] adjust_capacity: Allocating %d entries on heap...\n", capacity);
     Entry* entries = (Entry*)safe_alloc(sizeof(Entry) * capacity);
-    for (int i = 0; i < capacity; i++) { entries[i].key = NULL; entries[i].value.type = VAL_NULL; }
+    for (int i = 0; i < capacity; i++) {
+        entries[i].key = NULL;
+        entries[i].value.type = VAL_NULL;
+    }
+    int old_capacity = table->capacity;
     table->count = 0;
-    for (int i = 0; i < table->capacity; i++) {
+    printf("[easec] adjust_capacity: Re-hashing %d old entries...\n", old_capacity);
+    for (int i = 0; i < old_capacity; i++) {
         Entry* entry = &table->entries[i];
         if (entry->key == NULL) continue;
         Entry* dest = find_entry(entries, capacity, entry->key);
         dest->key = entry->key; dest->value = entry->value; table->count++;
     }
-    safe_free(table->entries); table->entries = entries; table->capacity = capacity;
+    printf("[easec] adjust_capacity: Freeing old entries array...\n");
+    safe_free(table->entries);
+    table->entries = entries;
+    table->capacity = capacity;
+    printf("[easec] adjust_capacity: Done.\n");
 }
 
 int table_set(Table* table, ObjString* key, Value value) {
-    if (table->count + 1 > table->capacity * 0.75) adjust_capacity(table, table->capacity < 8 ? 8 : table->capacity * 2);
+    printf("[easec] table_set: count=%d, capacity=%d...\n", table->count, table->capacity);
+    if (table->count + 1 > table->capacity * 0.75) {
+        int capacity = table->capacity < 8 ? 8 : table->capacity * 2;
+        printf("[easec] table_set: Resizing table from %d to %d...\n", table->capacity, capacity);
+        adjust_capacity(table, capacity);
+    }
+    printf("[easec] table_set: Resolving index using find_entry...\n");
     Entry* entry = find_entry(table->entries, table->capacity, key);
     int is_new_key = entry->key == NULL;
     if (is_new_key && entry->value.type == VAL_NULL) table->count++;
-    entry->key = key; entry->value = value; return is_new_key;
+    entry->key = key; entry->value = value;
+    printf("[easec] table_set: Done. is_new_key=%d, table->count=%d\n", is_new_key, table->count);
+    return is_new_key;
 }
 
 int table_delete(Table* table, ObjString* key) {
@@ -297,16 +315,24 @@ uint32_t hash_string(const char* key, int length) {
 Object* allocate_object(size_t size, ObjType type);
 
 ObjString* allocate_string(const char* chars, int length) {
+    printf("[easec] allocate_string: Interning '%s' (len %d)...\n", chars, length);
     uint32_t hash = hash_string(chars, length);
+    printf("[easec] allocate_string: Searching VM strings hash table...\n");
     ObjString* interned = table_find_string(&vm.strings, chars, length, hash);
-    if (interned != NULL) return interned;
+    if (interned != NULL) {
+        printf("[easec] allocate_string: Found existing interned string!\n");
+        return interned;
+    }
 
+    printf("[easec] allocate_string: Allocating new ObjString on VM heap...\n");
     ObjString* string = (ObjString*)allocate_object(sizeof(ObjString), OBJ_STRING);
     string->chars = (char*)safe_alloc(length + 1);
     memcpy(string->chars, chars, length);
     string->chars[length] = '\0'; string->hash = hash;
 
+    printf("[easec] allocate_string: Registering new string in weak table...\n");
     push(OBJ_VAL(string)); table_set(&vm.strings, string, make_null()); pop();
+    printf("[easec] allocate_string: String successfully registered!\n");
     return string;
 }
 
@@ -322,8 +348,11 @@ Env* create_env(Env* parent) {
 void pop_env() { if (vm.env_count > 0) vm.env_count--; }
 
 void env_define(Env* env, const char* name, Value val) {
+    printf("[easec] env_define: Preparing to define '%s'...\n", name);
     ObjString* key = allocate_string(name, strlen(name));
+    printf("[easec] env_define: Binding key-value in env hash table...\n");
     table_set(&env->variables, key, val);
+    printf("[easec] env_define: Variable definition done.\n");
 }
 
 int env_set(Env* env, const char* name, Value val) {
