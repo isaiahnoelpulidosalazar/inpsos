@@ -220,12 +220,16 @@ char* read_file(HBA_Port* disk, const char* name, uint32_t* out_size) {
 extern void easec_register_fs(void* env, char** filenames, int count);
 
 void register_filesystem_env(void* env) {
+    printf("[kernel] register_filesystem_env: Step A. Reading directory...\n");
     read_directory(active_ports[1]);
+    
+    printf("[kernel] register_filesystem_env: Step B. Scanning cached directory used slots...\n");
     int count = 0;
     for (int i = 0; i < 10; i++) {
         if (dir_cache[i].used) count++;
     }
     
+    printf("[kernel] register_filesystem_env: Found %d files. Allocating buffer...\n", count);
     char** names = malloc(sizeof(char*) * count);
     int idx = 0;
     for (int i = 0; i < 10; i++) {
@@ -234,8 +238,13 @@ void register_filesystem_env(void* env) {
         }
     }
     
+    printf("[kernel] register_filesystem_env: Step C. Transferring variables to easec VM...\n");
     easec_register_fs(env, names, count);
+    
+    printf("[kernel] register_filesystem_env: Step D. Freeing allocated memory...\n");
     free(names);
+    
+    printf("[kernel] register_filesystem_env: Success!\n");
 }
 
 void wipe_hard_drive(HBA_Port* dest) {
@@ -411,11 +420,20 @@ void k_main() {
             uint32_t fsize = 0;
             
             if (strcmp(input_buffer, "help") != 0 && strcmp(input_buffer, "install") != 0) {
+                printf("[kernel] Main: Reading script file...\n");
                 char* script_src = read_file(active_ports[1], input_buffer, &fsize);
                 
                 if (script_src) {
+                    printf("[kernel] Main: Registering filesystem variables to VM...\n");
                     register_filesystem_env(global_env);
+                    
+                    printf("[kernel] Main: Invoking run_script...\n");
+                    extern int had_runtime_error;
+                    had_runtime_error = 0;
+                    
                     run_script(script_src, global_env);
+                    
+                    printf("[kernel] Main: Script execution finished. Freeing buffer...\n");
                     free(script_src);
                 } else {
                     printf("File '%s' not found.\n", input_buffer);
