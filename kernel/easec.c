@@ -122,7 +122,7 @@ void free_ast() {
     arena = NULL;
 }
 
-typedef enum { VAL_NULL, VAL_BOOL, VAL_INT, VAL_OBJ } ValType;
+typedef enum { VAL_NULL, VAL_BOOL, VAL_INT, VAL_DECIMAL, VAL_OBJ } ValType;
 typedef enum { OBJ_STRING, OBJ_ARRAY, OBJ_DICT, OBJ_JOB, OBJ_MODULE, OBJ_ENV } ObjType;
 
 typedef struct sObject {
@@ -137,6 +137,7 @@ typedef struct {
     union {
         int boolean;
         long long integer;
+        double decimal;
         Object* obj;
     } as;
 } Value;
@@ -170,6 +171,12 @@ typedef struct { Object obj; Table table; } ObjDict;
 Value make_null(void) { Value v; v.type = VAL_NULL; return v; }
 Value make_bool(int b) { Value v; v.type = VAL_BOOL; v.as.boolean = b; return v; }
 Value make_int(long long i) { Value v; v.type = VAL_INT; v.as.integer = i; return v; }
+Value make_decimal(double d) { 
+    Value v; 
+    v.type = VAL_DECIMAL; 
+    v.as.decimal = d; 
+    return v; 
+}
 
 void mark_value(Value val);
 void run_file(const char* path, Env* env);
@@ -539,11 +546,14 @@ EasecToken next_token() {
     }
 
     if (is_digit(c)) {
+        int is_decimal = 0;
         while (is_digit(lexer_peek())) lexer_advance();
         if (lexer_peek() == '.' && is_digit(lexer_peek_next())) {
-            lexer_advance(); while (is_digit(lexer_peek())) lexer_advance();
+            is_decimal = 1;
+            lexer_advance(); 
+            while (is_digit(lexer_peek())) lexer_advance();
         }
-        return make_token(TOKEN_NUMBER, start, lexer.current - start);
+        return make_token(is_decimal ? TOKEN_DECIMAL : TOKEN_NUMBER, start, lexer.current - start);
     }
 
     if (is_alpha(c)) {
@@ -639,10 +649,18 @@ Stmt* make_error_stmt() { Stmt* s = make_stmt(STMT_EXPR, parser_curr.line); s->a
 
 Expr* parse_literal() {
     Expr* e = make_expr(EXPR_LITERAL, parser_prev.line);
-    if (parser_prev.type == TOKEN_NUMBER || parser_prev.type == TOKEN_DECIMAL) e->as.literal = make_int(atoll(parser_prev.text)); 
-    else if (parser_prev.type == TOKEN_STRING) { e->as.literal = OBJ_VAL(allocate_string(parser_prev.text, strlen(parser_prev.text))); e->as.literal.as.obj->is_constant = 1; }
-    else if (parser_prev.type == TOKEN_TRUE) e->as.literal = make_bool(1);
-    else if (parser_prev.type == TOKEN_FALSE) e->as.literal = make_bool(0);
+    if (parser_prev.type == TOKEN_NUMBER) {
+        e->as.literal = make_int(atoll(parser_prev.text)); 
+    } else if (parser_prev.type == TOKEN_DECIMAL) {
+        e->as.literal = make_decimal(strtod(parser_prev.text, NULL));
+    } else if (parser_prev.type == TOKEN_STRING) { 
+        e->as.literal = OBJ_VAL(allocate_string(parser_prev.text, strlen(parser_prev.text))); 
+        e->as.literal.as.obj->is_constant = 1; 
+    } else if (parser_prev.type == TOKEN_TRUE) {
+        e->as.literal = make_bool(1);
+    } else if (parser_prev.type == TOKEN_FALSE) {
+        e->as.literal = make_bool(0);
+    }
     return e;
 }
 
@@ -1033,6 +1051,7 @@ char* value_to_string(Value val) {
     if (val.type == VAL_NULL) strcpy(buffer, "null");
     else if (val.type == VAL_BOOL) strcpy(buffer, val.as.boolean ? "true" : "false");
     else if (val.type == VAL_INT) snprintf(buffer, sizeof(buffer), "%lld", val.as.integer);
+    else if (val.type == VAL_DECIMAL) snprintf(buffer, sizeof(buffer), "%g", val.as.decimal);
     else if (val.type == VAL_OBJ) {
         if (val.as.obj->type == OBJ_STRING) return safe_strdup(((ObjString*)val.as.obj)->chars);
         else strcpy(buffer, "<Object>");
@@ -1044,18 +1063,30 @@ int is_truthy(Value val) {
     if (val.type == VAL_NULL) return 0;
     if (val.type == VAL_BOOL) return val.as.boolean;
     if (val.type == VAL_INT) return val.as.integer != 0;
+    if (val.type == VAL_DECIMAL) return val.as.decimal != 0.0;
     return 1;
 }
 
 int values_equal(Value a, Value b) {
-    if (a.type != b.type) return 0; if (a.type == VAL_NULL) return 1;
+    if ((a.type == VAL_INT || a.type == VAL_DECIMAL) && (b.type == VAL_INT || b.type == VAL_DECIMAL)) {
+        double val_a = a.type == VAL_INT ? (double)a.as.integer : a.as.decimal;
+        double val_b = b.type == VAL_INT ? (double)b.as.integer : b.as.decimal;
+        return val_a == val_b;
+    }
+    if (a.type != b.type) return 0; 
+    if (a.type == VAL_NULL) return 1;
     if (a.type == VAL_BOOL) return a.as.boolean == b.as.boolean;
     if (a.type == VAL_INT) return a.as.integer == b.as.integer;
+    if (a.type == VAL_DECIMAL) return a.as.decimal == b.as.decimal;
     if (a.type == VAL_OBJ) {
         if (a.as.obj->type == OBJ_STRING && b.as.obj->type == OBJ_STRING) return a.as.obj == b.as.obj;
         return a.as.obj == b.as.obj;
     }
     return 0;
+}
+
+static inline int is_number(Value val) {
+    return val.type == VAL_INT || val.type == VAL_DECIMAL;
 }
 
 InterpretResult run() {
@@ -1069,17 +1100,33 @@ InterpretResult run() {
 
 #define BINARY_OP(op) \
     do { \
-        if (peek(0).type != VAL_INT || peek(1).type != VAL_INT) { runtime_error("Operands must be numbers."); return INTERPRET_RUNTIME_ERROR; } \
-        long long b = pop().as.integer; long long a = pop().as.integer; \
-        if (#op[0] == '/') { if (b == 0) { runtime_error("Division by zero."); return INTERPRET_RUNTIME_ERROR; } } \
-        push(make_int(a op b)); \
+        if (!is_number(peek(0)) || !is_number(peek(1))) { \
+            runtime_error("Operands must be numbers."); \
+            return INTERPRET_RUNTIME_ERROR; \
+        } \
+        Value b = pop(); Value a = pop(); \
+        if (a.type == VAL_DECIMAL || b.type == VAL_DECIMAL) { \
+            double val_b = b.type == VAL_INT ? (double)b.as.integer : b.as.decimal; \
+            double val_a = a.type == VAL_INT ? (double)a.as.integer : a.as.decimal; \
+            if (#op[0] == '/') { if (val_b == 0.0) { runtime_error("Division by zero."); return INTERPRET_RUNTIME_ERROR; } } \
+            push(make_decimal(val_a op val_b)); \
+        } else { \
+            long long val_b = b.as.integer; long long val_a = a.as.integer; \
+            if (#op[0] == '/') { if (val_b == 0) { runtime_error("Division by zero."); return INTERPRET_RUNTIME_ERROR; } } \
+            push(make_int(val_a op val_b)); \
+        } \
     } while (false)
 
 #define BINARY_COMP_OP(op) \
     do { \
-        if (peek(0).type != VAL_INT || peek(1).type != VAL_INT) { runtime_error("Operands must be numbers."); return INTERPRET_RUNTIME_ERROR; } \
-        long long b = pop().as.integer; long long a = pop().as.integer; \
-        push(make_bool(a op b)); \
+        if (!is_number(peek(0)) || !is_number(peek(1))) { \
+            runtime_error("Operands must be numbers."); \
+            return INTERPRET_RUNTIME_ERROR; \
+        } \
+        Value b = pop(); Value a = pop(); \
+        double val_b = b.type == VAL_INT ? (double)b.as.integer : b.as.decimal; \
+        double val_a = a.type == VAL_INT ? (double)a.as.integer : a.as.decimal; \
+        push(make_bool(val_a op val_b)); \
     } while (false)
 
     for (;;) {
@@ -1090,8 +1137,15 @@ InterpretResult run() {
             case OP_NULL:  push(make_null()); break; case OP_TRUE:  push(make_bool(1)); break; case OP_FALSE: push(make_bool(0)); break;
             case OP_POP:   pop(); break; case OP_DUP:   push(peek(0)); break;
             case OP_NEGATE: {
-                if (peek(0).type == VAL_INT) { push(make_int(-pop().as.integer)); }
-                else { runtime_error("Operand must be a number."); return INTERPRET_RUNTIME_ERROR; } break;
+                if (peek(0).type == VAL_INT) { 
+                    push(make_int(-pop().as.integer)); 
+                } else if (peek(0).type == VAL_DECIMAL) { 
+                    push(make_decimal(-pop().as.decimal));
+                } else { 
+                    runtime_error("Operand must be a number."); 
+                    return INTERPRET_RUNTIME_ERROR; 
+                } 
+                break;
             }
             case OP_NOT: push(make_bool(!is_truthy(pop()))); break;
             case OP_ADD: {
@@ -1102,7 +1156,17 @@ InterpretResult run() {
                 } else BINARY_OP(+); break;
             }
             case OP_SUBTRACT: BINARY_OP(-); break; case OP_MULTIPLY: BINARY_OP(*); break; case OP_DIVIDE: BINARY_OP(/); break;
-            case OP_MODULO: BINARY_OP(%); break;
+            case OP_MODULO: {
+                if (peek(0).type != VAL_INT || peek(1).type != VAL_INT) { 
+                    runtime_error("Modulo operands must be integers."); 
+                    return INTERPRET_RUNTIME_ERROR; 
+                }
+                long long b = pop().as.integer; 
+                long long a = pop().as.integer; 
+                if (b == 0) { runtime_error("Division by zero."); return INTERPRET_RUNTIME_ERROR; }
+                push(make_int(a % b)); 
+                break;
+            }
             case OP_EQUAL: { Value b = pop(); Value a = pop(); push(make_bool(values_equal(a, b))); break; }
             case OP_GREATER: BINARY_COMP_OP(>); break; case OP_LESS: BINARY_COMP_OP(<); break;
             case OP_JUMP_IF_FALSE: { uint16_t offset = READ_SHORT(); if (!is_truthy(peek(0))) frame->ip += offset; break; }
