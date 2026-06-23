@@ -280,7 +280,7 @@ void run_installer() {
     }
     kputs("Done.\n");
     
-    kputs("Deploying packed filesystem files directly from RAM (Sectors 256 to 320)... ");
+    kputs("Deploying packed filesystem files (Sectors 256 to 320) from memory... ");
     int fs_sectors = fs_bin_len / 512;
     if (fs_sectors == 0) fs_sectors = 1;
     
@@ -346,7 +346,6 @@ void k_main() {
             }
         }
     }
-    kputs("\n\n");
     
     HBA_Port* installed_port = NULL;
     uint32_t sector_buffer[128];

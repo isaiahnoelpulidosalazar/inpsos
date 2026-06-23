@@ -215,6 +215,7 @@ int table_get(Table* table, ObjString* key, Value* value) {
 }
 
 static void adjust_capacity(Table* table, int capacity) {
+    printf("[easec] adjust_capacity: Allocating %d entries on heap...\n", capacity);
     Entry* entries = (Entry*)safe_alloc(sizeof(Entry) * capacity);
     for (int i = 0; i < capacity; i++) {
         entries[i].key = NULL;
@@ -222,26 +223,33 @@ static void adjust_capacity(Table* table, int capacity) {
     }
     int old_capacity = table->capacity;
     table->count = 0;
+    printf("[easec] adjust_capacity: Re-hashing %d old entries...\n", old_capacity);
     for (int i = 0; i < old_capacity; i++) {
         Entry* entry = &table->entries[i];
         if (entry->key == NULL) continue;
         Entry* dest = find_entry(entries, capacity, entry->key);
         dest->key = entry->key; dest->value = entry->value; table->count++;
     }
+    printf("[easec] adjust_capacity: Freeing old entries array...\n");
     safe_free(table->entries);
     table->entries = entries;
     table->capacity = capacity;
+    printf("[easec] adjust_capacity: Done.\n");
 }
 
 int table_set(Table* table, ObjString* key, Value value) {
+    printf("[easec] table_set: count=%d, capacity=%d...\n", table->count, table->capacity);
     if ((table->count + 1) * 4 > table->capacity * 3) {
         int capacity = table->capacity < 8 ? 8 : table->capacity * 2;
+        printf("[easec] table_set: Resizing table from %d to %d...\n", table->capacity, capacity);
         adjust_capacity(table, capacity);
     }
+    printf("[easec] table_set: Resolving index using find_entry...\n");
     Entry* entry = find_entry(table->entries, table->capacity, key);
     int is_new_key = entry->key == NULL;
     if (is_new_key && entry->value.type == VAL_NULL) table->count++;
     entry->key = key; entry->value = value;
+    printf("[easec] table_set: Done. is_new_key=%d, table->count=%d\n", is_new_key, table->count);
     return is_new_key;
 }
 
@@ -308,18 +316,24 @@ uint32_t hash_string(const char* key, int length) {
 Object* allocate_object(size_t size, ObjType type);
 
 ObjString* allocate_string(const char* chars, int length) {
+    printf("[easec] allocate_string: Interning '%s' (len %d)...\n", chars, length);
     uint32_t hash = hash_string(chars, length);
+    printf("[easec] allocate_string: Searching VM strings hash table...\n");
     ObjString* interned = table_find_string(&vm.strings, chars, length, hash);
     if (interned != NULL) {
+        printf("[easec] allocate_string: Found existing interned string!\n");
         return interned;
     }
 
+    printf("[easec] allocate_string: Allocating new ObjString on VM heap...\n");
     ObjString* string = (ObjString*)allocate_object(sizeof(ObjString), OBJ_STRING);
     string->chars = (char*)safe_alloc(length + 1);
     memcpy(string->chars, chars, length);
     string->chars[length] = '\0'; string->hash = hash;
 
+    printf("[easec] allocate_string: Registering new string in weak table...\n");
     push(OBJ_VAL(string)); table_set(&vm.strings, string, make_null()); pop();
+    printf("[easec] allocate_string: String successfully registered!\n");
     return string;
 }
 
@@ -335,8 +349,11 @@ Env* create_env(Env* parent) {
 void pop_env() { if (vm.env_count > 0) vm.env_count--; }
 
 void env_define(Env* env, const char* name, Value val) {
+    printf("[easec] env_define: Preparing to define '%s'...\n", name);
     ObjString* key = allocate_string(name, strlen(name));
+    printf("[easec] env_define: Binding key-value in env hash table...\n");
     table_set(&env->variables, key, val);
+    printf("[easec] env_define: Variable definition done.\n");
 }
 
 int env_set(Env* env, const char* name, Value val) {
@@ -1226,32 +1243,42 @@ InterpretResult run() {
 }
 
 void easec_register_fs(void* env_ptr, char** filenames, int count) {
+    printf("[easec] easec_register_fs: Started.\n");
     vm.gc_paused = 1; 
     Env* env = (Env*)env_ptr;
     
+    printf("[easec] easec_register_fs: Defining file_count...\n");
     env_define(env, "file_count", make_int(count));
     
+    printf("[easec] easec_register_fs: Making array...\n");
     Value arr_val = make_array();
     ObjArray* arr = (ObjArray*)arr_val.as.obj;
     arr->count = count;
     arr->capacity = count;
     
+    printf("[easec] easec_register_fs: Allocating array items...\n");
     arr->items = (Value*)safe_alloc(sizeof(Value) * count);
     
+    printf("[easec] easec_register_fs: Populating %d files...\n", count);
     for (int i = 0; i < count; i++) {
+        printf("[easec] easec_register_fs: Allocating string for '%s'...\n", filenames[i]);
         ObjString* name = allocate_string(filenames[i], strlen(filenames[i]));
         arr->items[i] = OBJ_VAL(name);
     }
     
+    printf("[easec] easec_register_fs: Defining files...\n");
     env_define(env, "files", arr_val);
     
     vm.gc_paused = 0;
+    printf("[easec] easec_register_fs: Done!\n");
 }
 
 void run_script(const char* source, Env* env) {
+    printf("[easec] Starting execution pipeline...\n");
     had_error = 0; had_runtime_error = 0; init_lexer(source); advance_parser();
     vm.gc_paused = 1;
     
+    printf("[easec] Parsing statements...\n");
     Stmt** stmts = NULL; int stmt_count = 0; skip_newlines();
     while (parser_curr.type != TOKEN_EOF) {
         stmts = AST_REALLOC_ARRAY(stmts, Stmt*, stmt_count, stmt_count + 1);
@@ -1259,30 +1286,36 @@ void run_script(const char* source, Env* env) {
         if (had_error) { synchronize(); break; }
         skip_newlines();
     }
-    if (had_error) { vm.gc_paused = 0; free_ast(); return; }
+    if (had_error) { printf("[easec] Compilation aborted due to syntax errors.\n"); vm.gc_paused = 0; free_ast(); return; }
     
+    printf("[easec] Allocating main script job...\n");
     ObjJob* script_job = (ObjJob*)allocate_object(sizeof(ObjJob), OBJ_JOB);
     script_job->name = allocate_string("main_script", 11);
     script_job->arity = 0; script_job->params = NULL; init_chunk(&script_job->chunk); script_job->closure = env;
     
+    printf("[easec] Compiling bytecode...\n");
     Compiler compiler = {&script_job->chunk};
     for (int i = 0; i < stmt_count; i++) compile_stmt(&compiler, stmts[i]);
     write_chunk(&script_job->chunk, OP_NULL, 1); write_chunk(&script_job->chunk, OP_RETURN, 1);
     
     vm.gc_paused = 0;
     
+    printf("[easec] Setting up execution frame...\n");
     Env* saved_env = vm.env; int saved_frame_count = vm.frame_count; Value* saved_stack_top = vm.stack_top;
     vm.env = env; CallFrame* frame = &vm.frames[vm.frame_count++];
     frame->job = script_job; frame->ip = script_job->chunk.code; frame->slots = vm.stack_top; frame->env = env;
     
     push(OBJ_VAL(script_job));
     
-    // if (run() == INTERPRET_RUNTIME_ERROR) printf("[easec] Script aborted due to runtime error.\n");
+    printf("[easec] Entering VM interpreter loop...\n");
+    if (run() == INTERPRET_RUNTIME_ERROR) printf("[easec] Script aborted due to runtime error.\n");
     
+    printf("[easec] Script completed. Restoring state...\n");
     vm.env = saved_env;
     if (saved_frame_count == 0) { vm.frame_count = 0; vm.stack_top = vm.stack; } 
     else { vm.frame_count = saved_frame_count; vm.stack_top = saved_stack_top; }
     free_ast();
+    printf("[easec] VM state restored.\n");
 }
 
 void run_file(const char* path, Env* env) {

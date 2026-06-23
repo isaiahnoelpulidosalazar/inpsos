@@ -100,9 +100,6 @@ void init_ahci() {
                 
                 if (port->sig == 0x00000101) {
                     active_ports[active_port_count++] = port;
-                    printf("AHCI: SATA Hard Drive detected on Port %d.\n", i);
-                } else {
-                    printf("AHCI: Port %d bypassed (non-HDD device).\n", i);
                 }
             }
         }
