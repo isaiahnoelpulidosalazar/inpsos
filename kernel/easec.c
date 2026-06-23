@@ -652,7 +652,7 @@ Expr* parse_literal() {
     if (parser_prev.type == TOKEN_NUMBER) {
         e->as.literal = make_int(atoll(parser_prev.text)); 
     } else if (parser_prev.type == TOKEN_DECIMAL) {
-        e->as.literal = make_decimal(strtod(parser_prev.text, NULL));
+        e->as.literal = make_decimal(atof(parser_prev.text));
     } else if (parser_prev.type == TOKEN_STRING) { 
         e->as.literal = OBJ_VAL(allocate_string(parser_prev.text, strlen(parser_prev.text))); 
         e->as.literal.as.obj->is_constant = 1; 
