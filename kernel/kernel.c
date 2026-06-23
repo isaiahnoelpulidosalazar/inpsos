@@ -423,7 +423,7 @@ void k_main() {
                     printf("File '%s' not found.\n", input_buffer);
                 }
             } else if (strcmp(input_buffer, "help") == 0) {
-                kputs("Use the command 'test.easec' to get started.\n");
+                kputs("Type a program name (e.g. test.easec) to get started.\n");
                 /* kputs("Available programs on storage:\n");
                 read_directory(active_ports[1]);
                 for (int i = 0; i < 10; i++) {
