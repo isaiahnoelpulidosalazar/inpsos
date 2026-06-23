@@ -1228,9 +1228,11 @@ void easec_register_fs(void* env_ptr, char** filenames, int count) {
 }
 
 void run_script(const char* source, Env* env) {
+    printf("[easec] Starting execution pipeline...\n");
     had_error = 0; had_runtime_error = 0; init_lexer(source); advance_parser();
     vm.gc_paused = 1;
     
+    printf("[easec] Parsing statements...\n");
     Stmt** stmts = NULL; int stmt_count = 0; skip_newlines();
     while (parser_curr.type != TOKEN_EOF) {
         stmts = AST_REALLOC_ARRAY(stmts, Stmt*, stmt_count, stmt_count + 1);
@@ -1240,28 +1242,34 @@ void run_script(const char* source, Env* env) {
     }
     if (had_error) { printf("[easec] Compilation aborted due to syntax errors.\n"); vm.gc_paused = 0; free_ast(); return; }
     
+    printf("[easec] Allocating main script job...\n");
     ObjJob* script_job = (ObjJob*)allocate_object(sizeof(ObjJob), OBJ_JOB);
     script_job->name = allocate_string("main_script", 11);
     script_job->arity = 0; script_job->params = NULL; init_chunk(&script_job->chunk); script_job->closure = env;
     
+    printf("[easec] Compiling bytecode...\n");
     Compiler compiler = {&script_job->chunk};
     for (int i = 0; i < stmt_count; i++) compile_stmt(&compiler, stmts[i]);
     write_chunk(&script_job->chunk, OP_NULL, 1); write_chunk(&script_job->chunk, OP_RETURN, 1);
     
     vm.gc_paused = 0;
     
+    printf("[easec] Setting up execution frame...\n");
     Env* saved_env = vm.env; int saved_frame_count = vm.frame_count; Value* saved_stack_top = vm.stack_top;
     vm.env = env; CallFrame* frame = &vm.frames[vm.frame_count++];
     frame->job = script_job; frame->ip = script_job->chunk.code; frame->slots = vm.stack_top; frame->env = env;
     
     push(OBJ_VAL(script_job));
     
+    printf("[easec] Entering VM interpreter loop...\n");
     if (run() == INTERPRET_RUNTIME_ERROR) printf("[easec] Script aborted due to runtime error.\n");
     
+    printf("[easec] Script completed. Restoring state...\n");
     vm.env = saved_env;
     if (saved_frame_count == 0) { vm.frame_count = 0; vm.stack_top = vm.stack; } 
     else { vm.frame_count = saved_frame_count; vm.stack_top = saved_stack_top; }
     free_ast();
+    printf("[easec] VM state restored.\n");
 }
 
 void run_file(const char* path, Env* env) {
