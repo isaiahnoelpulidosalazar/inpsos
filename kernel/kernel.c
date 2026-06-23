@@ -436,7 +436,7 @@ void k_main() {
                 } else {
                     printf("[DIAGNOSTIC] File '%s' not found or read failed.\n", input_buffer);
                 }
-            } else if (strcmp(input_buffer, "help") != 0 && strcmp(input_buffer, "install") != 0) {
+            } else if (strcmp(input_buffer, "help") != 0 && strcmp(input_buffer, "install") != 0  && strcmp(input_buffer, "test") != 0) {
                 printf("[DIAGNOSTIC] 1. Searching for '%s' on disk...\n", input_buffer);
                 
                 char* script_src = read_file(active_ports[1], input_buffer, &fsize);
