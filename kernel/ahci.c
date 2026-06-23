@@ -94,7 +94,16 @@ void init_ahci() {
             uint8_t det = ssts & 0x0F;
             if (det == 3) {
                 init_ahci_port(port);
-                active_ports[active_port_count++] = port;
+                
+                volatile int spin = 0;
+                while (spin++ < 1000000);
+                
+                if (port->sig == 0x00000101) {
+                    active_ports[active_port_count++] = port;
+                    printf("AHCI: SATA Hard Drive detected on Port %d.\n", i);
+                } else {
+                    printf("AHCI: Port %d bypassed (non-HDD device).\n", i);
+                }
             }
         }
     }
@@ -155,7 +164,6 @@ bool ahci_read(HBA_Port* port, uint32_t startl, uint32_t starth, uint32_t count,
     }
     
     __sync_synchronize();
-    
     port->ci = 1 << slot;
     
     spin = 0;
@@ -226,7 +234,6 @@ bool ahci_write(HBA_Port* port, uint32_t startl, uint32_t starth, uint32_t count
     }
     
     __sync_synchronize();
-    
     port->ci = 1 << slot;
     
     spin = 0;
@@ -285,7 +292,6 @@ bool ahci_flush_cache(HBA_Port* port) {
     }
     
     __sync_synchronize();
-    
     port->ci = 1 << slot;
     
     spin = 0;

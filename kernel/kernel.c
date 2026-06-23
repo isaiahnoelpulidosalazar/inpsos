@@ -420,23 +420,7 @@ void k_main() {
         } else {
             uint32_t fsize = 0;
             
-            if (strcmp(input_buffer, "test") == 0) {
-                printf("[DIAGNOSTIC] 1. Searching for '%s' on disk...\n", input_buffer);
-                
-                char* script_src = read_file(active_ports[1], input_buffer, &fsize);
-                
-                if (script_src) {
-                    printf("[DIAGNOSTIC] 2. Success! Loaded %d bytes.\n", fsize);
-                    printf("[DIAGNOSTIC] 3. Dumping raw file contents:\n");
-                    printf("========================================\n");
-                    printf("%s\n", script_src);
-                    printf("========================================\n");
-                    printf("[DIAGNOSTIC] 4. Bypassing execution layer for debug safety.\n");
-                    free(script_src);
-                } else {
-                    printf("[DIAGNOSTIC] File '%s' not found or read failed.\n", input_buffer);
-                }
-            } else if (strcmp(input_buffer, "help") != 0 && strcmp(input_buffer, "install") != 0  && strcmp(input_buffer, "test") != 0) {
+            if (strcmp(input_buffer, "help") != 0 && strcmp(input_buffer, "install") != 0) {
                 printf("[DIAGNOSTIC] 1. Searching for '%s' on disk...\n", input_buffer);
                 
                 char* script_src = read_file(active_ports[1], input_buffer, &fsize);
