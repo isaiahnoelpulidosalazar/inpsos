@@ -1,14 +1,22 @@
-say "Enter target filename:"
-var text filename get
-file create filename ""
-say "Enter content to write:"
-repeat forever [
-    var text content get
-    if content == "create_file.exit" [
-        out
-    ] else [
-        file update filename content
-        file update filename "\n"
+job get_content [
+    var text accumulated ""
+    var text nl "
+"
+    repeat forever [
+        var text line get
+        if line == "create_file.exit" [
+            out accumulated
+        ] else [
+            accumulated = accumulated + line + nl
+        ]
     ]
 ]
+
+say "Enter target filename:"
+var text filename get
+
+say "Enter content to write (type 'create_file.exit' to save and exit):"
+var text content get_content
+
+file create filename content
 say "File created successfully."
