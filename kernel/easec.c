@@ -1209,22 +1209,34 @@ InterpretResult run() {
 }
 
 void easec_register_fs(void* env_ptr, char** filenames, int count) {
+    printf("[easec] easec_register_fs: Started.\n");
     vm.gc_paused = 1; 
     Env* env = (Env*)env_ptr;
+    
+    printf("[easec] easec_register_fs: Defining file_count...\n");
     env_define(env, "file_count", make_int(count));
     
+    printf("[easec] easec_register_fs: Making array...\n");
     Value arr_val = make_array();
     ObjArray* arr = (ObjArray*)arr_val.as.obj;
     arr->count = count;
     arr->capacity = count;
+    
+    printf("[easec] easec_register_fs: Allocating array items...\n");
     arr->items = (Value*)safe_alloc(sizeof(Value) * count);
     
+    printf("[easec] easec_register_fs: Populating %d files...\n", count);
     for (int i = 0; i < count; i++) {
+        printf("[easec] easec_register_fs: Allocating string for '%s'...\n", filenames[i]);
         ObjString* name = allocate_string(filenames[i], strlen(filenames[i]));
         arr->items[i] = OBJ_VAL(name);
     }
+    
+    printf("[easec] easec_register_fs: Defining files...\n");
     env_define(env, "files", arr_val);
+    
     vm.gc_paused = 0;
+    printf("[easec] easec_register_fs: Done!\n");
 }
 
 void run_script(const char* source, Env* env) {
