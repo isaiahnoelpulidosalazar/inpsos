@@ -39,7 +39,7 @@ size_t bytes_allocated = 0;
 
 void* safe_alloc(size_t size) {
     size_t* ptr = (size_t*)malloc(size + sizeof(size_t));
-    if (!ptr) { printf("Fatal: Out of memory.\n"); exit(1); }
+    if (!ptr) { printf("Fatal: Out of memory.\n"); abort(); }
     memset(ptr + 1, 0, size);
     *ptr = size;
     bytes_allocated += size;
@@ -59,7 +59,7 @@ void* safe_realloc(void* p, size_t new_size) {
     size_t* ptr = (size_t*)p - 1;
     size_t old_size = *ptr;
     size_t* new_ptr = (size_t*)realloc(ptr, new_size + sizeof(size_t));
-    if (!new_ptr) { printf("Fatal: Out of memory.\n"); exit(1); }
+    if (!new_ptr) { printf("Fatal: Out of memory.\n"); abort(); }
     *new_ptr = new_size;
     bytes_allocated -= old_size;
     bytes_allocated += new_size;
@@ -939,7 +939,9 @@ void compile_stmt(Compiler* compiler, Stmt* stmt) {
         case STMT_DICT: {
             for (int i = 0; i < stmt->as.dict_decl.count; i++) {
                 ObjString* key = allocate_string(stmt->as.dict_decl.keys[i], strlen(stmt->as.dict_decl.keys[i]));
-                int key_const = add_constant(compiler->chunk, OBJ_VAL(key)); write_chunk(compiler->chunk, OP_CONSTANT, write_chunk(compiler->chunk, key_const, stmt->line), stmt->line);
+                int key_const = add_constant(compiler->chunk, OBJ_VAL(key)); 
+                write_chunk(compiler->chunk, OP_CONSTANT, stmt->line); 
+                write_chunk(compiler->chunk, key_const, stmt->line);
                 compile_expr(compiler, stmt->as.dict_decl.values[i]);
             }
             write_chunk(compiler->chunk, OP_DICT, stmt->line); write_chunk(compiler->chunk, stmt->as.dict_decl.count, stmt->line);
@@ -950,7 +952,9 @@ void compile_stmt(Compiler* compiler, Stmt* stmt) {
             ObjString* name = allocate_string(stmt->as.dict_set.name, strlen(stmt->as.dict_set.name));
             int name_const = add_constant(compiler->chunk, OBJ_VAL(name)); write_chunk(compiler->chunk, OP_GET_GLOBAL, stmt->line); write_chunk(compiler->chunk, name_const, stmt->line);
             ObjString* key = allocate_string(stmt->as.dict_set.key, strlen(stmt->as.dict_set.key));
-            int key_const = add_constant(compiler->chunk, OBJ_VAL(key)); write_chunk(compiler->chunk, OP_CONSTANT, expr->line); write_chunk(compiler->chunk, key_const, stmt->line);
+            int key_const = add_constant(compiler->chunk, OBJ_VAL(key)); 
+            write_chunk(compiler->chunk, OP_CONSTANT, stmt->line); 
+            write_chunk(compiler->chunk, key_const, stmt->line);
             compile_expr(compiler, stmt->as.dict_set.value); write_chunk(compiler->chunk, OP_DICT_SET, stmt->line); write_chunk(compiler->chunk, OP_POP, stmt->line); break;
         }
         case STMT_JOB: {
