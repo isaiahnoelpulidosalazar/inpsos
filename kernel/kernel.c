@@ -217,31 +217,6 @@ char* read_file(HBA_Port* disk, const char* name, uint32_t* out_size) {
     return NULL;
 }
 
-typedef enum { VAL_NULL, VAL_BOOL, VAL_INT, VAL_FLOAT, VAL_OBJ } ValType;
-typedef struct {
-    ValType type;
-    union {
-        int boolean;
-        long long integer;
-        double floating;
-        void* obj;
-    } as;
-} Value;
-
-typedef struct {
-    uint32_t type;
-    int marked;
-    int is_constant;
-    void* next;
-} MockObject;
-
-typedef struct { 
-    MockObject obj; 
-    Value* items; 
-    int capacity; 
-    int count; 
-} ObjArray;
-
 #define OBJ_VAL(o) ((Value){VAL_OBJ, {.obj = (void*)(o)}})
 
 extern Value make_array();

@@ -76,6 +76,8 @@ void init_ahci_port(HBA_Port* port) {
     memset((void*)clb_addr, 0, 1024);
     memset((void*)fb_addr, 0, 256);
 
+    __sync_synchronize();
+
     port->cmd |= 0x0010;
     port->cmd |= 0x0001;
 }
@@ -152,6 +154,8 @@ bool ahci_read(HBA_Port* port, uint32_t startl, uint32_t starth, uint32_t count,
         }
     }
     
+    __sync_synchronize();
+    
     port->ci = 1 << slot;
     
     spin = 0;
@@ -221,6 +225,8 @@ bool ahci_write(HBA_Port* port, uint32_t startl, uint32_t starth, uint32_t count
         }
     }
     
+    __sync_synchronize();
+    
     port->ci = 1 << slot;
     
     spin = 0;
@@ -277,6 +283,8 @@ bool ahci_flush_cache(HBA_Port* port) {
             return false;
         }
     }
+    
+    __sync_synchronize();
     
     port->ci = 1 << slot;
     
