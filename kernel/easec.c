@@ -626,7 +626,7 @@ Stmt* make_error_stmt() { Stmt* s = make_stmt(STMT_EXPR, parser_curr.line); s->a
 
 Expr* parse_literal() {
     Expr* e = make_expr(EXPR_LITERAL, parser_prev.line);
-    if (parser_prev.type == TOKEN_NUMBER || parser_prev.type == TOKEN_DECIMAL) e->as.literal = make_int(atoll(parser_prev.text));
+    if (parser_prev.type == TOKEN_NUMBER || parser_prev.type == TOKEN_DECIMAL) e->as.literal = make_int(atoll(parser_prev.text)); 
     else if (parser_prev.type == TOKEN_STRING) { e->as.literal = OBJ_VAL(allocate_string(parser_prev.text, strlen(parser_prev.text))); e->as.literal.as.obj->is_constant = 1; }
     else if (parser_prev.type == TOKEN_TRUE) e->as.literal = make_bool(1);
     else if (parser_prev.type == TOKEN_FALSE) e->as.literal = make_bool(0);
@@ -939,7 +939,7 @@ void compile_stmt(Compiler* compiler, Stmt* stmt) {
         case STMT_DICT: {
             for (int i = 0; i < stmt->as.dict_decl.count; i++) {
                 ObjString* key = allocate_string(stmt->as.dict_decl.keys[i], strlen(stmt->as.dict_decl.keys[i]));
-                int key_const = add_constant(compiler->chunk, OBJ_VAL(key)); write_chunk(compiler->chunk, OP_CONSTANT, stmt->line); write_chunk(compiler->chunk, key_const, stmt->line);
+                int key_const = add_constant(compiler->chunk, OBJ_VAL(key)); write_chunk(compiler->chunk, OP_CONSTANT, write_chunk(compiler->chunk, key_const, stmt->line), stmt->line);
                 compile_expr(compiler, stmt->as.dict_decl.values[i]);
             }
             write_chunk(compiler->chunk, OP_DICT, stmt->line); write_chunk(compiler->chunk, stmt->as.dict_decl.count, stmt->line);
@@ -950,7 +950,7 @@ void compile_stmt(Compiler* compiler, Stmt* stmt) {
             ObjString* name = allocate_string(stmt->as.dict_set.name, strlen(stmt->as.dict_set.name));
             int name_const = add_constant(compiler->chunk, OBJ_VAL(name)); write_chunk(compiler->chunk, OP_GET_GLOBAL, stmt->line); write_chunk(compiler->chunk, name_const, stmt->line);
             ObjString* key = allocate_string(stmt->as.dict_set.key, strlen(stmt->as.dict_set.key));
-            int key_const = add_constant(compiler->chunk, OBJ_VAL(key)); write_chunk(compiler->chunk, OP_CONSTANT, stmt->line); write_chunk(compiler->chunk, key_const, stmt->line);
+            int key_const = add_constant(compiler->chunk, OBJ_VAL(key)); write_chunk(compiler->chunk, OP_CONSTANT, expr->line); write_chunk(compiler->chunk, key_const, stmt->line);
             compile_expr(compiler, stmt->as.dict_set.value); write_chunk(compiler->chunk, OP_DICT_SET, stmt->line); write_chunk(compiler->chunk, OP_POP, stmt->line); break;
         }
         case STMT_JOB: {
@@ -1206,7 +1206,6 @@ InterpretResult run() {
 
 void easec_register_fs(void* env_ptr, char** filenames, int count) {
     vm.gc_paused = 1; 
-    
     Env* env = (Env*)env_ptr;
     env_define(env, "file_count", make_int(count));
     
@@ -1221,7 +1220,6 @@ void easec_register_fs(void* env_ptr, char** filenames, int count) {
         arr->items[i] = OBJ_VAL(name);
     }
     env_define(env, "files", arr_val);
-    
     vm.gc_paused = 0;
 }
 

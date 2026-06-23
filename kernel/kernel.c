@@ -300,7 +300,7 @@ void run_installer() {
             kputs("Failed!\n"); return;
         }
     }
-    kputs("Flushing physical drive cache... ");
+    kputs("\nFlushing physical drive cache... ");
     if (ahci_flush_cache(dest)) {
         kputs("Done.\n");
     } else {
