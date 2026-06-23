@@ -274,7 +274,15 @@ ObjString* table_find_string(Table* table, const char* chars, int length, uint32
 #define STACK_MAX 1024
 #define FRAMES_MAX 64
 
-typedef struct { CallFrame frames[FRAMES_MAX]; int frame_count; Value stack[STACK_MAX]; Value* stack_top; Table strings; Object* objects; size_t next_gc; int gc_paused; Env* env; Env** env_stack; int env_count; int env_capacity; char** import_stack; int import_count; int import_capacity; } VM;
+typedef struct { ObjJob* job; uint8_t* ip; Value* slots; Env* env; } CallFrame;
+
+typedef struct {
+    CallFrame frames[FRAMES_MAX]; int frame_count;
+    Value stack[STACK_MAX]; Value* stack_top;
+    Table strings; Object* objects; size_t next_gc; int gc_paused;
+    Env* env; Env** env_stack; int env_count; int env_capacity;
+    char** import_stack; int import_count; int import_capacity;
+} VM;
 
 VM vm;
 
@@ -1145,7 +1153,7 @@ InterpretResult run() {
                 if (arg_count != job->arity) { runtime_error("Expected %d arguments.", job->arity); return INTERPRET_RUNTIME_ERROR; }
                 Env* local = create_env(job->closure);
                 for (int i = 0; i < job->arity; i++) { Value arg = peek(job->arity - 1 - i); env_define(local, job->params[i]->chars, arg); }
-                vm.env = local; CallFrame* new_frame = &vm.frames[vm.count++];
+                vm.env = local; CallFrame* new_frame = &vm.frames[vm.frame_count++];
                 new_frame->job = job; new_frame->ip = job->chunk.code; new_frame->slots = vm.stack_top - arg_count - 1; new_frame->env = local; frame = new_frame; break;
             }
             case OP_RETURN: {
