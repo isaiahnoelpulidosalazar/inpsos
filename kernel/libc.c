@@ -464,6 +464,18 @@ char* fgets(char* s, int size, KFILE* stream) {
     }
 }
 
+char* strncat(char* dest, const char* src, size_t n) {
+    char* ret = dest;
+    while (*dest) {
+        dest++;
+    }
+    while (n-- > 0 && *src) {
+        *dest++ = *src++;
+    }
+    *dest = '\0';
+    return ret;
+}
+
 int remove(const char* filename) {
     return delete_file(active_ports[1], filename) ? 0 : -1;
 }
