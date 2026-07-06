@@ -327,9 +327,6 @@ void run_installer() {
 
 void k_main() {
     clear_screen();
-    // kputs("==================================================\n");
-    // kputs("          INPSOS OPERATING SYSTEM                 \n");
-    // kputs("==================================================\n");
     kputs("Starting system...\n");
     
     init_allocator();
@@ -337,10 +334,8 @@ void k_main() {
     
     bool force_installer = false;
     
-    // kputs("Press 'i' to enter Installer Mode (Booting in 2s)... ");
     long long start_wait = get_time_ms();
     int last_seconds_left = 2;
-    // printf("%d ", last_seconds_left);
     
     while (1) {
         long long elapsed = get_time_ms() - start_wait;
@@ -348,7 +343,6 @@ void k_main() {
         
         int seconds_left = 2 - (int)(elapsed / 1000);
         if (seconds_left < last_seconds_left && seconds_left > 0) {
-            // printf("%d ", seconds_left);
             last_seconds_left = seconds_left;
         }
         
@@ -393,8 +387,6 @@ void k_main() {
     }
     
     if (is_installed_mode) {
-        // kputs("Booted from primary hard drive. inpsos is active.\n");
-        // kputs("Type a program name to execute (e.g. list.easec)\n\n");
         kputs("inpsos booted.\n\n");
     } else {
         kputs("Installer started.\n");
@@ -426,24 +418,17 @@ void k_main() {
         } else {
             uint32_t fsize = 0;
             
-            if (strcmp(input_buffer, "help") != 0) {
-                char* script_src = read_file(active_ports[1], input_buffer, &fsize);
-                if (script_src) {
-                    register_filesystem_env(global_env);
-                    extern int had_runtime_error;
-                    had_runtime_error = 0;
-                    run_script(script_src, global_env);
-                    free(script_src);
-                } else {
-                    printf("File '%s' not found.\n", input_buffer);
-                }
-            } else if (strcmp(input_buffer, "help") == 0) {
-                kputs("Type a program name (e.g. test.easec) to get started.\n");
-                /* kputs("Available programs on storage:\n");
-                read_directory(active_ports[1]);
-                for (int i = 0; i < 10; i++) {
-                    if (dir_cache[i].used) printf("  - %s (%d bytes)\n", dir_cache[i].filename, dir_cache[i].size);
-                } */
+            size_t remaining_space = sizeof(input_buffer) - strlen(input_buffer) - 1;
+            strncat(input_buffer, ".easec", remaining_space);
+            char* script_src = read_file(active_ports[1], input_buffer, &fsize);
+            if (script_src) {
+                register_filesystem_env(global_env);
+                extern int had_runtime_error;
+                had_runtime_error = 0;
+                run_script(script_src, global_env);
+                free(script_src);
+            } else {
+                printf("Program '%s' not found.\n", input_buffer);
             }
         }
     }
