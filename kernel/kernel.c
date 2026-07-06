@@ -25,11 +25,18 @@ static int cursor_x = 0;
 static int cursor_y = 0;
 static uint8_t term_color = 0x07;
 
+static int input_start_pos = 0;
+
+void set_input_limit() {
+    input_start_pos = cursor_y * VGA_WIDTH + cursor_x;
+}
+
 void clear_screen() {
     for (int i = 0; i < VGA_WIDTH * VGA_HEIGHT; i++) {
         VGA_MEM[i] = (term_color << 8) | ' ';
     }
     cursor_x = 0; cursor_y = 0;
+    input_start_pos = 0;
 }
 
 static inline void outb(uint16_t port, uint8_t val) {
@@ -74,8 +81,15 @@ void kputc(char c) {
         cursor_x = 0; 
     }
     else if (c == '\b') {
-        if (cursor_x > 0) {
-            cursor_x--;
+        int current_pos = cursor_y * VGA_WIDTH + cursor_x;
+        
+        if (current_pos > input_start_pos) {
+            if (cursor_x > 0) {
+                cursor_x--;
+            } else if (cursor_y > 0) {
+                cursor_y--;
+                cursor_x = VGA_WIDTH - 1;
+            }
             VGA_MEM[cursor_y * VGA_WIDTH + cursor_x] = (term_color << 8) | ' ';
         }
     } else {
@@ -393,6 +407,7 @@ void k_main() {
     
     while (1) {
         if (is_installed_mode) kputs("inpsos> "); else kputs("installer> ");
+        set_input_limit(); 
         fgets(input_buffer, sizeof(input_buffer), stdin);
         
         int len = strlen(input_buffer);
