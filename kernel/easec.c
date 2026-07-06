@@ -1252,6 +1252,8 @@ InterpretResult run() {
             }
             case OP_GET_INPUT: {
                 char buf[512];
+                extern void set_input_limit(void);
+                set_input_limit();
                 if (fgets(buf, sizeof(buf), stdin)) { buf[strcspn(buf, "\r\n")] = '\0'; push(OBJ_VAL(allocate_string(buf, strlen(buf)))); } 
                 else push(make_null()); break;
             }

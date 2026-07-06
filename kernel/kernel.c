@@ -426,7 +426,7 @@ void k_main() {
         } else {
             uint32_t fsize = 0;
             
-            if (strcmp(input_buffer, "help") != 0 && strcmp(input_buffer, "install") != 0) {
+            if (strcmp(input_buffer, "help") != 0) {
                 char* script_src = read_file(active_ports[1], input_buffer, &fsize);
                 if (script_src) {
                     register_filesystem_env(global_env);
@@ -444,8 +444,6 @@ void k_main() {
                 for (int i = 0; i < 10; i++) {
                     if (dir_cache[i].used) printf("  - %s (%d bytes)\n", dir_cache[i].filename, dir_cache[i].size);
                 } */
-            } else if (strcmp(input_buffer, "install") == 0) {
-                run_installer();
             }
         }
     }
