@@ -3,6 +3,7 @@
 
 #include "boot_bin.h"
 #include "fs_bin.h"
+#include <string.h>
 
 extern void init_allocator();
 extern void init_ahci();
