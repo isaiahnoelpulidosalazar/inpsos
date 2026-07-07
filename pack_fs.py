@@ -10,7 +10,7 @@ def pack_fs(programs_dir, out_file):
         print(f"Error: Programs directory '{programs_dir}' does not exist.")
         sys.exit(1)
         
-    files = sorted([f for f in os.listdir(programs_dir) if f.endswith('.easec')])
+    files = sorted([f for f in os.listdir(programs_dir) if f.endswith('.easec') or f.endswith('.modec')])
     files = files[:10]
     
     current_relative_sector = 1
