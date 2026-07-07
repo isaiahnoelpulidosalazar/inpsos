@@ -1188,6 +1188,41 @@ InterpretResult run() {
                 ObjString* name = (ObjString*)READ_STRING(); Value val = peek(0);
                 if (!env_set(vm.env, name->chars, val)) { runtime_error("Undefined variable '%s'.", name->chars); return INTERPRET_RUNTIME_ERROR; } break;
             }
+            case OP_GET_PROPERTY: {
+                ObjString* name = (ObjString*)READ_STRING();
+                Value obj = pop();
+                if (obj.type != VAL_OBJ) {
+                    runtime_error("Only objects support property access.");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                if (obj.as.obj->type == OBJ_MODULE) {
+                    ObjModule* mod = (ObjModule*)obj.as.obj;
+                    Value value = env_get(mod->env, name->chars);
+                    if (value.type == VAL_NULL) {
+                        runtime_error("Undefined property '%s' in module.", name->chars);
+                        return INTERPRET_RUNTIME_ERROR;
+                    }
+                    if (value.type == VAL_OBJ && value.as.obj->type == OBJ_JOB) {
+                        ObjJob* job = (ObjJob*)value.as.obj;
+                        if (job->arity == 0) {
+                            Env* local = create_env(job->closure);
+                            vm.env = local;
+                            CallFrame* new_frame = &vm.frames[vm.frame_count++];
+                            new_frame->job = job;
+                            new_frame->ip = job->chunk.code;
+                            new_frame->slots = vm.stack_top;
+                            new_frame->env = local;
+                            frame = new_frame;
+                            break;
+                        }
+                    }
+                    push(value);
+                } else {
+                    runtime_error("Properties are only supported on modules.");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                break;
+            }
             case OP_CLOSURE: {
                 ObjJob* job = (ObjJob*)READ_STRING(); ObjJob* closure = (ObjJob*)allocate_object(sizeof(ObjJob), OBJ_JOB);
                 closure->name = job->name; closure->arity = job->arity; closure->params = job->params;
