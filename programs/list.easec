@@ -1,4 +1,4 @@
-say "Available programs on disk:"
+say "Available files on disk:"
 var number idx 0
 repeat file_count [
     var text name array get files idx
