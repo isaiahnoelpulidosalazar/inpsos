@@ -1,0 +1,1 @@
+assign_in_expr.easec:2: Error at '=': Assignment is not allowed here (it is a statement, not an expression)

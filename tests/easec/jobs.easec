@@ -1,0 +1,27 @@
+job add(a, b) { out a + b }
+say add(15, 25)
+job factorial(n) {
+    if n <= 1 { out 1 }
+    out n * factorial(n - 1)
+}
+say factorial(10)
+job fib(n) {
+    if n < 2 { out n }
+    out fib(n - 1) + fib(n - 2)
+}
+say fib(18)
+job counter() {
+    var count = 0
+    job inc() {
+        count += 1
+        out count
+    }
+    out inc
+}
+var c = counter()
+c()
+c()
+say c()
+job nothing() { }
+say nothing()
+say add

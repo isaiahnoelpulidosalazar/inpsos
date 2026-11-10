@@ -1,4 +1,7 @@
 say "Enter target filename to delete:"
-var text filename get
-file delete filename
-say "File deleted successfully."
+var filename = input()
+if file.delete(filename) {
+    say "File deleted successfully."
+} else {
+    say "File not found."
+}

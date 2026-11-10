@@ -1,1 +1,2 @@
-say "Type a program name (e.g. list) to get started."
+say "Type a program name (e.g. list) to run it. Built-ins: clear, reboot."
+say "Programs: " + file.list()

@@ -1,0 +1,3 @@
+var VERSION = 2
+job twice(x) { out x * 2 }
+say "util loaded"

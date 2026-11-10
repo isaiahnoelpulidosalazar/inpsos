@@ -1,0 +1,29 @@
+job add() { }
+var xs = [10, 20, 30]
+say xs[1]
+xs[1] = 99
+xs[2] += 1
+say xs
+say push(xs, 7)
+say pop(xs)
+say len(xs)
+var d = {host: "localhost", "port": 8080}
+say d.host
+say d["port"]
+d.host = "127.0.0.1"
+d["n"] = 1
+d.n += 1
+say d.host + ":" + d.port
+say d.n
+say d.missing
+say len(d)
+say len(keys(d))
+say "hello"[1]
+say len("hello")
+var nested = [[1, 2], {a: [3]}]
+say nested
+say type(nested)
+say type(d)
+say type(1.5)
+say type("x")
+say type(add)

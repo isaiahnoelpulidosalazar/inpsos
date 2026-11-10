@@ -1,71 +1,44 @@
+/* Minimal freestanding C library for inpsos.
+ * Deliberately small: unsafe functions (strcpy, strcat, gets, ...) are NOT provided. */
 #ifndef LIBC_H
 #define LIBC_H
 
 #include <stdint.h>
 #include <stddef.h>
+#include <stdbool.h>
 #include <stdarg.h>
 
-#define bool  _Bool
-#define true  1
-#define false 0
+/* ---- memory / string ---- */
+void*  memset(void* dst, int v, size_t n);
+void*  memcpy(void* dst, const void* src, size_t n);
+void*  memmove(void* dst, const void* src, size_t n);
+int    memcmp(const void* a, const void* b, size_t n);
+size_t strlen(const char* s);
+int    strcmp(const char* a, const char* b);
+int    strncmp(const char* a, const char* b, size_t n);
+/* Copies at most n-1 bytes and always NUL terminates (n > 0). Returns strlen(src). */
+size_t strlcpy(char* dst, const char* src, size_t n);
 
-#ifndef NULL
-#define NULL  ((void*)0)
-#endif
-
-long long get_time_ms(void);
-void sleep_ms(long long ms);
-
-void* memset(void* dest, int val, size_t len);
-void* memcpy(void* dest, const void* src, size_t len);
-size_t strlen(const char* str);
-char* strcpy(char* dest, const char* src);
-char* strcat(char* dest, const char* src);
-int strcmp(const char* s1, const char* s2);
-int strncmp(const char* s1, const char* s2, size_t n);
-char* strncpy(char* dest, const char* src, size_t n);
-size_t strcspn(const char* s1, const char* s2);
-char* strrchr(const char* s, int c);
-char* strchr(const char* s, int c);
-int memcmp(const void* s1, const void* s2, size_t n);
 int isalpha(int c);
 int isdigit(int c);
-int strcasecmp(const char* s1, const char* s2);
+int isalnum(int c);
+int isspace(int c);
 
-long long atoll(const char* str);
-double atof(const char* str);
+/* ---- formatted output ---- */
+int vsnprintf(char* buf, size_t size, const char* fmt, va_list ap);
+int snprintf(char* buf, size_t size, const char* fmt, ...) __attribute__((format(printf, 3, 4)));
+int printf(const char* fmt, ...) __attribute__((format(printf, 1, 2)));
 
-void* malloc(size_t size);
-void free(void* ptr);
-void* realloc(void* ptr, size_t size);
-char* strdup(const char* s);
+/* ---- heap ---- */
+void  heap_init(void);
+void* malloc(size_t n);
+void* calloc(size_t n, size_t sz);
+void* realloc(void* p, size_t n);
+void  free(void* p);
+size_t heap_free_bytes(void);
 
-#define EOF (-1)
-#define stdin  ((KFILE*)1)
-#define stdout ((KFILE*)2)
-#define stderr ((KFILE*)3)
-
-typedef struct {
-    char filename[32];
-    uint32_t cursor;
-    uint32_t size;
-    int mode;
-    char* buffer;
-} KFILE;
-
-#define FILE KFILE
-
-KFILE* fopen(const char* filename, const char* mode);
-int fclose(KFILE* stream);
-size_t fread(void* ptr, size_t size, size_t nmemb, KFILE* stream);
-int fprintf(KFILE* stream, const char* format, ...);
-int printf(const char* format, ...);
-int snprintf(char* str, size_t size, const char* format, ...);
-int vfprintf(KFILE* stream, const char* format, va_list arg);
-int fputs(const char* s, KFILE* stream);
-char* fgets(char* s, int size, KFILE* stream);
-int remove(const char* filename);
-
-void abort(void);
+/* ---- misc ---- */
+void abort(void) __attribute__((noreturn));
+void panic(const char* msg) __attribute__((noreturn));
 
 #endif

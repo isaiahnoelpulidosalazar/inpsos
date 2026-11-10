@@ -1,0 +1,6 @@
+import "datetime.modec" as dt
+say dt.iso_string(0)
+say dt.iso_string(1700000000123)
+say dt.iso_string(951782400000)
+say dt.iso_string(1709164800000 + 86399000)
+say dt.date_string(4107542400000)

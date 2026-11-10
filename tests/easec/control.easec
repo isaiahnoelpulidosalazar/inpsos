@@ -1,0 +1,33 @@
+var i = 0
+while i < 5 {
+    i += 1
+    if i == 2 { skip }
+    if i == 4 { stop }
+    say "i=" + i
+}
+repeat 3 { say "r" }
+var n = 0
+repeat 10 {
+    n += 1
+    if n == 3 { stop }
+}
+say n
+repeat forever {
+    n += 1
+    if n > 5 { stop }
+}
+say n
+if n == 1 {
+    say "one"
+} else if n == 6 {
+    say "six"
+} else {
+    say "other"
+}
+repeat 2 {
+    repeat 2 {
+        say "x"
+        stop
+    }
+    say "y"
+}

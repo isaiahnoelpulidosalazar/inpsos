@@ -1,0 +1,6 @@
+util loaded
+2
+42
+2
+Runtime error: Module 'mod_util.easec' has no member 'nope'
+  [line 6] in <script>

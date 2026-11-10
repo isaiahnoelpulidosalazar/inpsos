@@ -1,0 +1,17 @@
+var a = 1
+var b: number = 2
+var c: decimal = 3
+var d: text = "hi"
+var e: boolean = true
+var f: list = [1, 2]
+var g: dict = {x: 1}
+var h
+say c
+say h
+say h == null
+a += 10
+b *= 5
+say a
+say b
+a = a - 1
+say a

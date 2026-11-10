@@ -1,0 +1,17 @@
+var name = input("name? ")
+say "hi " + name
+var n = number(input())
+say n + 1
+say input()
+say file.create("a.txt", "one")
+say file.append("a.txt", "two")
+say file.read("a.txt")
+say file.exists("a.txt")
+say file.list()
+say file.delete("a.txt")
+say file.exists("a.txt")
+say file.read("a.txt")
+say time.now()
+say decimal("2.5") + 1
+say number("  42 ")
+say number("zzz")

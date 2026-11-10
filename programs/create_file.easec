@@ -1,22 +1,22 @@
-job get_content [
-    var text accumulated ""
-    var text nl "
-"
-    repeat forever [
-        var text line get
-        if line == "create_file.exit" [
-            out accumulated
-        ] else [
-            accumulated = accumulated + line + nl
-        ]
-    ]
-]
+note Create a text file from interactive input.
+
+job read_until(terminator) {
+    var content = ""
+    repeat forever {
+        var line = input()
+        if line == null or line == terminator { out content }
+        content += line + "\n"
+    }
+}
 
 say "Enter target filename:"
-var text filename get
+var filename = input()
 
-say "Enter content to write (type 'create_file.exit' to save and exit):"
-var text content get_content
+say "Enter content (type 'create_file.exit' on its own line to save):"
+var content = read_until("create_file.exit")
 
-file create filename content
-say "File created successfully."
+if file.create(filename, content) {
+    say "File created successfully."
+} else {
+    say "Could not create file (invalid name or no space)."
+}

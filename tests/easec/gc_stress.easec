@@ -1,0 +1,15 @@
+note allocates far more than the VM's budget in total: only works if the GC reclaims garbage
+var keep = []
+var i = 0
+repeat 3000 {
+    var s = "item-" + i
+    var d = {a: s, b: [i, i + 1, i + 2]}
+    if i % 500 == 0 { push(keep, d) }
+    i += 1
+}
+say len(keep)
+say keep[2].a
+say keep[5].b
+var big = ""
+repeat 200 { big = big + "0123456789" }
+say len(big)

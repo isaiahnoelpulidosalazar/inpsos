@@ -1,0 +1,2 @@
+job deep(n) { out deep(n + 1) }
+deep(0)

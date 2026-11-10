@@ -1,0 +1,5 @@
+say "tab:\there"
+say "quote: \"q\""
+say "multi
+line"
+say len("a\nb")

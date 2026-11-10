@@ -1,175 +1,62 @@
-note [
-    easec datetime module (UTC)
-]
+note easec datetime module (UTC). Import with:  import "datetime.modec" as dt
+note All functions take epoch MILLISECONDS (what time.now() returns).
 
-note Pad number with leading zero if single digits
-job pad val [
-    if val < 10 [
-        out "0" + val
-    ]
-    out "" + val
-]
+var DAYS_IN_MONTH = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 
-note Convert Epoch milliseconds to UTC components
-job get_utc_dict epoch_ms [
-    var total_seconds epoch_ms / 1000
-    var second total_seconds % 60
-    
-    var total_minutes total_seconds / 60
-    var minute total_minutes % 60
-    
-    var total_hours total_minutes / 60
-    var hour total_hours % 24
-    
-    var days total_hours / 24
-    
-    var year 1970
-    
-    note Loop to subtract years until we find the correct year
-    repeat forever [
-        var leap 0
-        if (year % 4) == 0 [
-            if (year % 100) == 0 [
-                if (year % 400) == 0 [
-                    leap = 1
-                ] else [
-                    leap = 0
-                ]
-            ] else [
-                leap = 1
-            ]
-        ]
-        
-        var days_in_year 365
-        if leap == 1 [
-            days_in_year = 366
-        ]
-        
-        if days >= days_in_year [
-            days = days - days_in_year
-            year = year + 1
-        ] else [
-            note Year found. Now calculate month and day.
-            var month 1
-            
-            note Jan
-            if days >= 31 [
-                days = days - 31
-                month = 2
-                
-                note Feb
-                var feb_days 28
-                if leap == 1 [
-                    feb_days = 29
-                ]
-                if days >= feb_days [
-                    days = days - feb_days
-                    month = 3
-                    
-                    note Mar
-                    if days >= 31 [
-                        days = days - 31
-                        month = 4
-                        
-                        note Apr
-                        if days >= 30 [
-                            days = days - 30
-                            month = 5
-                            
-                            note May
-                            if days >= 31 [
-                                days = days - 31
-                                month = 6
-                                
-                                note Jun
-                                if days >= 30 [
-                                    days = days - 30
-                                    month = 7
-                                    
-                                    note Jul
-                                    if days >= 31 [
-                                        days = days - 31
-                                        month = 8
-                                        
-                                        note Aug
-                                        if days >= 31 [
-                                            days = days - 31
-                                            month = 9
-                                            
-                                            note Sep
-                                            if days >= 30 [
-                                                days = days - 30
-                                                month = 10
-                                                
-                                                note Oct
-                                                if days >= 31 [
-                                                    days = days - 31
-                                                    month = 11
-                                                    
-                                                    note Nov
-                                                    if days >= 30 [
-                                                        days = days - 30
-                                                        month = 12
-                                                    ]
-                                                ]
-                                            ]
-                                        ]
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ]
-                ]
-            ]
-            
-            var day days + 1
-            dictionary result year: year, month: month, day: day, hour: hour, minute: minute, second: second
-            out result
-        ]
-    ]
-]
+job is_leap(year) {
+    out (year % 4 == 0 and year % 100 != 0) or year % 400 == 0
+}
 
-note Return UTC date string as YYYY-MM-DD
-job get_date_string epoch_ms [
-    var dt get_utc_dict epoch_ms
-    var y dictionary get dt year
-    var m pad (dictionary get dt month)
-    var d pad (dictionary get dt day)
-    out y + "-" + m + "-" + d
-]
+note Pad a number with a leading zero: 7 -> "07"
+job pad(n) {
+    if n < 10 { out "0" + n }
+    out "" + n
+}
 
-note Return UTC time string as HH:MM:SS
-job get_time_string epoch_ms [
-    var dt get_utc_dict epoch_ms
-    var h pad (dictionary get dt hour)
-    var min pad (dictionary get dt minute)
-    var s pad (dictionary get dt second)
-    out h + ":" + min + ":" + s
-]
+note Break epoch milliseconds into a dictionary of UTC components.
+note (Replaces the original 12-level nested if/else ladder with a table lookup.)
+job get_utc_dict(epoch_ms) {
+    var total_seconds = epoch_ms / 1000
+    var total_minutes = total_seconds / 60
+    var total_hours = total_minutes / 60
+    var days = total_hours / 24
 
-note Return ISO 8601 datetime string (YYYY-MM-DD HH:MM:SS)
-job get_iso_string epoch_ms [
-    var dt get_utc_dict epoch_ms
-    var y dictionary get dt year
-    var m pad (dictionary get dt month)
-    var d pad (dictionary get dt day)
-    var h pad (dictionary get dt hour)
-    var min pad (dictionary get dt minute)
-    var s pad (dictionary get dt second)
-    out y + "-" + m + "-" + d + " " + h + ":" + min + ":" + s
-]
+    var year = 1970
+    repeat forever {
+        var days_in_year = 365
+        if is_leap(year) { days_in_year = 366 }
+        if days < days_in_year { stop }
+        days -= days_in_year
+        year += 1
+    }
 
-job get_today_date [
-    var now time get
-    out get_date_string now
-]
+    var month = 0
+    repeat forever {
+        var dim = DAYS_IN_MONTH[month]
+        if month == 1 and is_leap(year) { dim = 29 }
+        if days < dim { stop }
+        days -= dim
+        month += 1
+    }
 
-job get_today_time [
-    var now time get
-    out get_time_string now
-]
+    out {
+        year: year, month: month + 1, day: days + 1,
+        hour: total_hours % 24, minute: total_minutes % 60, second: total_seconds % 60
+    }
+}
 
-job get_today_iso [
-    var now time get
-    out get_iso_string now
-]
+job date_string(epoch_ms) {
+    var d = get_utc_dict(epoch_ms)
+    out d.year + "-" + pad(d.month) + "-" + pad(d.day)
+}
+
+job time_string(epoch_ms) {
+    var d = get_utc_dict(epoch_ms)
+    out pad(d.hour) + ":" + pad(d.minute) + ":" + pad(d.second)
+}
+
+job iso_string(epoch_ms) { out date_string(epoch_ms) + " " + time_string(epoch_ms) }
+
+job today() { out date_string(time.now()) }
+job now_time() { out time_string(time.now()) }
+job now_iso() { out iso_string(time.now()) }

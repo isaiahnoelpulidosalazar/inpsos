@@ -1,0 +1,6 @@
+import "mod_util.easec" as u
+import "mod_util.easec"
+say u.VERSION
+say u.twice(21)
+say mod_util.VERSION
+say u.nope

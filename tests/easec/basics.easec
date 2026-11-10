@@ -1,0 +1,23 @@
+note arithmetic, precedence, text, decimals
+say 1 + 2 * 3
+say (1 + 2) * 3
+say 10 / 3
+say 10 % 3
+say 7 / 2.0
+say 0.1 + 0.2
+say -5 + 2
+say "a" + "b" + 1 + true + null
+say 3.14159
+say 100.0
+say 1 == 1.0
+say "x" == "x"
+say not false
+say 1 < 2 and 2 < 3
+say null or "fallback"
+say false and boom
+var note_count = 3
+say note_count
+note { block comment
+   note { nested }
+}
+say "done" note trailing comment
